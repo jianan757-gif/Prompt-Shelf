@@ -97,4 +97,4 @@ reports/stage-a/                 本阶段证据
 
 本轮构建目录为 src-tauri/target-stage-b1-ui；同名 GUI/CLI 文件及 --data-dir / --import-manifest / --check 参数保持。主库与快捷面板在 main.tsx 显式分支加载各自 CSS；scripts/check-ui-build.mjs 检查实际发布入口的 CSS 预加载依赖；复现命令：先运行 pnpm build，再运行 pnpm check:ui-build。前端保留原测试并增加只读排序/日期检查，Rust 仅跑受影响 DTO 定向测试，不重复完整 PoC。
 
-主控已完成 Windows 主要界面实测，2026-10-25 用户确认 B1 主库 UI 视觉验收通过。自动化未成功验证原生移动/缩窄，未完成原型浏览器渲染图逐像素比较；详见 ../docs/public/b1-ui-delivery.md。当前不继续编辑保存业务。
+主控已完成 Windows 主要界面实测，2026-10-25 用户确认 B1 主库 UI 视觉验收通过，并补测确认窗口原生拖动、窄窗口适配和跨程序粘贴回归通过。以上补测属于用户实机验收，不是新增自动化结果；原型浏览器渲染图逐像素比较未完成。详见 ../docs/public/b1-ui-delivery.md。当前不继续编辑保存业务。
