@@ -1,0 +1,17 @@
+{
+  "sourceFileCount": 31,
+  "sourceManifestBeforeSha256": "bedc9fa62d5c5178195a61ab65bba1fe05716d01a77b5bc6f9c8540ce0c51c7a",
+  "sourceManifestAfterSha256": "bedc9fa62d5c5178195a61ab65bba1fe05716d01a77b5bc6f9c8540ce0c51c7a",
+  "sourceFilesChanged": "none",
+  "rustFilesCompared": 9,
+  "rustFilesChangedSinceRustTest": "none",
+  "cargoExit": "exit_code=0",
+  "frontendTestExit": "exit_code=0",
+  "frontendBuildExit": "exit_code=0",
+  "frontendTestsPassed": 15,
+  "developerTestLogCount": 15,
+  "manifestStable": true,
+  "finalVerificationPass": true,
+  "supersededPreliminaryFrontendRun": true,
+  "finalAppSha256": "e38c07651216e332e2d50d0d833acd8d34c50dd98111308b4c0de40fc7daa6cf"
+}

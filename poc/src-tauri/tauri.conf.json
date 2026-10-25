@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Prompt Shelf PoC",
+  "version": "0.1.0",
+  "identifier": "local.promptshelf.poc",
+  "build": { "beforeDevCommand": "pnpm dev", "devUrl": "http://localhost:1420", "beforeBuildCommand": "pnpm build", "frontendDist": "../dist" },
+  "app": {
+    "windows": [{ "label": "quick_panel", "title": "Prompt Shelf · 4.3 PoC", "width": 560, "height": 790, "minWidth": 540, "minHeight": 420, "visible": false, "alwaysOnTop": true, "decorations": false, "resizable": true }],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost",
+      "assetProtocol": { "enable": true, "scope": [] }
+    }
+  },
+  "bundle": { "active": false }
+}

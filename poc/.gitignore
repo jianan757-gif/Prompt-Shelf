@@ -1,0 +1,5 @@
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/target-round2/
+src-tauri/gen/

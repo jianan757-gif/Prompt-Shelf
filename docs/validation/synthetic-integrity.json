@@ -1,0 +1,10 @@
+{
+  "kind": "AUTO-FILE-INTEGRITY",
+  "cases": 100,
+  "physical_originals": 500,
+  "references": 501,
+  "unique_referenced": 500,
+  "failures": [],
+  "fixture_kind": "synthetic",
+  "real_photo_acceptance": "pending"
+}

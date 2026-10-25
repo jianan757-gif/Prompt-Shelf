@@ -1,0 +1,30 @@
+# Local/private handoff material
+/PROJECT.md
+/Prompt Shelf 4.3 技术验收与交接报告.md
+/handoff/
+/fixtures/
+/evidence/*
+!/evidence/.gitkeep
+/docs/*
+!/docs/public/
+!/docs/validation/
+/poc/reports/
+/Prompt Shelf 4.2·v2.0/previews/
+# Dependencies/build outputs
+**/node_modules/
+**/dist/
+**/target/
+**/target-round*/
+**/gen/
+**/__pycache__/
+*.pyc
+*.zip
+*.exe
+*.pid
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.DS_Store
+Thumbs.db

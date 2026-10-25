@@ -1,0 +1,9 @@
+{
+  "rustPassed": 32,
+  "frontendPassed": 15,
+  "typescriptVite": "PASS",
+  "sourceFilesMatched": 36,
+  "round5Unchanged": true,
+  "gui": "NOT_RUN",
+  "independentVerification": "PARTIAL_STATIC_ONLY_USAGE_LIMIT_INTERRUPTED"
+}

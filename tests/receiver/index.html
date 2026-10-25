@@ -1,0 +1,32 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Prompt Shelf PoC — 可控接收端</title>
+<style>body{font:15px/1.6 'Segoe UI','Microsoft YaHei',sans-serif;max-width:1000px;margin:30px auto;background:#f3f6fb;color:#273752}h1{font-size:22px}textarea{box-sizing:border-box;width:100%;height:160px;padding:15px;border:1px solid #afbdd3;border-radius:10px;background:white;font:inherit}.attachments{display:flex;flex-wrap:wrap;gap:12px}figure{margin:0;background:white;padding:10px;border:1px solid #dfe6ef;border-radius:9px}img{width:160px;height:130px;object-fit:contain;background:repeating-conic-gradient(#ddd 0% 25%,#fff 0% 50%) 50%/16px 16px}figcaption{font-size:12px}button{padding:8px 12px;margin:12px 8px 12px 0}pre{white-space:pre-wrap;font-size:12px;max-height:200px;overflow:auto}</style>
+<h1>Prompt Shelf PoC · 可控接收端</h1>
+<p>这里接收真实系统粘贴事件。只证明此测试网页的接收结果，不代表 ChatGPT 或豆包兼容。</p>
+<label for="input">先点击下方输入框，再按 Ctrl+Alt+1 呼出面板</label>
+<textarea id="input" placeholder="非敏感测试输入框"></textarea>
+<p id="status">已收到 0 次粘贴 / 0 张图</p>
+<button id="save">保存本次接收证据 JSON</button><button id="clear">清空本页测试结果</button>
+<div class="attachments" id="attachments"></div><pre id="log"></pre>
+<script>
+const events=[],urls=[];let pending=0;
+const status=()=>{document.querySelector('#status').textContent=`已收到 ${events.length} 次粘贴 / ${events.reduce((n,e)=>n+e.files.length,0)} 张图 · 解析中 ${pending}`;document.querySelector('#log').textContent=JSON.stringify(events,null,2)};
+document.querySelector('#input').addEventListener('paste',async e=>{
+ const entry={sequence:events.length+1,time:new Date().toISOString(),types:[...e.clipboardData.types],text:e.clipboardData.getData('text/plain'),files:[]};events.push(entry);
+ const files=[...e.clipboardData.files];
+ if(files.length)e.preventDefault();
+ for(const file of files){
+  pending++;status();
+  const meta={name:file.name,type:file.type,bytes:file.size};entry.files.push(meta);
+  try{
+   const bytes=await file.arrayBuffer();meta.sha256=[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(x=>x.toString(16).padStart(2,'0')).join('');
+   const bitmap=await createImageBitmap(file);meta.width=bitmap.width;meta.height=bitmap.height;
+   const canvas=document.createElement('canvas');canvas.width=bitmap.width;canvas.height=bitmap.height;const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(bitmap,0,0);const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;meta.transparent_pixels=0;for(let k=3;k<pixels.length;k+=4)if(pixels[k]<255)meta.transparent_pixels++;
+   meta.decoded_rgba_sha256=[...new Uint8Array(await crypto.subtle.digest('SHA-256',pixels))].map(x=>x.toString(16).padStart(2,'0')).join('');bitmap.close();canvas.width=canvas.height=0;
+   const url=URL.createObjectURL(file);urls.push(url);const fig=document.createElement('figure'),image=document.createElement('img'),cap=document.createElement('figcaption');image.src=url;cap.textContent=`#${entry.sequence} ${file.name} · ${meta.width}×${meta.height}`;fig.append(image,cap);document.querySelector('#attachments').append(fig);
+  }catch(err){meta.error=String(err)}finally{pending--;status()}
+ }
+ status();
+});
+document.querySelector('#save').onclick=()=>{const data={kind:'WINDOWS-CONTROLLED-WEB-RECEIVER',exportedAt:new Date().toISOString(),userAgent:navigator.userAgent,events,textValue:document.querySelector('#input').value,scope:'local receiver only; not external-target acceptance'};const u=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='prompt-shelf-received-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};
+document.querySelector('#clear').onclick=()=>{if(pending)return;events.length=0;urls.splice(0).forEach(URL.revokeObjectURL);document.querySelector('#attachments').replaceChildren();document.querySelector('#input').value='';status()};
+</script></html>

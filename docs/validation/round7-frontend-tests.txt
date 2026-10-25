@@ -1,0 +1,24 @@
+$ node --experimental-strip-types --test src/search.test.ts src/carousel.test.ts src/session.test.ts
+✔ mixed image widths advance to actual boundaries and clamp the final step (0.5777ms)
+✔ empty and nonoverflowing rails have no movable direction (0.4938ms)
+✔ fractional boundaries avoid repeated tiny steps and expose only available edges (0.104ms)
+✔ resize and filtered image counts restore a valid saved image boundary (0.0991ms)
+✔ nearest image and rapid requested steps preserve one-image navigation (0.1214ms)
+✔ AND spans fields and rejects absent terms (0.7726ms)
+✔ title ranks above body and project (0.1476ms)
+✔ dictionary is bidirectional and tabs filter (0.2459ms)
+✔ highlight preserves hostile HTML and regex query literally (0.2981ms)
+✔ same-collection wake preserves query, filters, selection and scroll (0.54ms)
+✔ hotkey collections restore their own position without clearing search or filters (0.5083ms)
+✔ active Escape cancels and retains panel; active close always hides (0.0891ms)
+✔ early failure waits for request receipt while stale terminal cannot unlock a new call (0.0967ms)
+✔ late nonterminal stages cannot replace the active cancel id or reopen a finished request (0.1167ms)
+✔ pending events are isolated by id and a terminal cannot be overwritten by an earlier stage (0.1047ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 169.6184

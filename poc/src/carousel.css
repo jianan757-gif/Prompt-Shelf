@@ -1,0 +1,14 @@
+/* V4.11 geometry, intentionally without the demo's backdrop blur. */
+.reference-carousel{flex:1 1 0;min-width:0;height:90px;position:relative;overflow:hidden;isolation:isolate}
+.reference-viewport{width:100%;height:90px;overflow:hidden;position:relative;scrollbar-width:none;overscroll-behavior-inline:contain}
+.reference-viewport::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+.reference-track{width:max-content;min-width:0;height:90px;display:flex;align-items:center;gap:6px;flex:none;overflow:visible!important;padding:0;margin:0;scrollbar-width:none;transition:none}
+.reference-track>.photo{height:90px!important;min-height:90px!important;flex:none}
+.reference-edge{position:absolute;top:0;bottom:0;width:34px;display:none;align-items:center;justify-content:center;z-index:8;border:0;background:transparent;outline:none;padding:0;opacity:1;cursor:pointer}
+.reference-edge.prev{left:0}.reference-edge.next{right:0}.reference-edge.available{display:flex}.reference-edge[hidden]{display:none!important}
+.reference-arrow{display:grid;place-items:center;width:29px;height:29px;flex:none;border:1px solid rgba(161,178,202,.56);border-radius:50%;background:rgba(250,252,255,.70);color:#526787;box-shadow:0 2px 7px rgba(26,44,72,.1);opacity:0;transform:scale(.95);transition:opacity .13s,transform .13s}
+.reference-edge:hover .reference-arrow,.reference-edge:focus-visible .reference-arrow{opacity:1;transform:scale(1)}
+.reference-edge:hover .reference-arrow{background:rgba(246,249,255,.83);color:#2356cc}
+.reference-edge:focus-visible{outline:2px solid #7fa3ff;outline-offset:-2px;border-radius:12px}
+.reference-edge svg{width:15px;height:15px;stroke:currentColor;stroke-width:2;fill:none;stroke-linejoin:round;stroke-linecap:round}
+@media(hover:none){.reference-edge.available .reference-arrow{opacity:.74;transform:none}}

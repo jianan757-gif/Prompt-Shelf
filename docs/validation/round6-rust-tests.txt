@@ -1,0 +1,39 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.04s
+     Running unittests src\main.rs (poc\src-tauri\target-round6\debug\deps\prompt_shelf_poc-174209a582b63cc0.exe)
+
+running 32 tests
+test data::tests::aliases_match_controller_schema ... ok
+test escape::tests::one_held_escape_cancels_without_later_hiding_idle_panel ... ok
+test escape::tests::registration_failure_is_explicit_and_local_fallback_is_one_press ... ok
+test escape::tests::repeated_wake_does_not_reset_a_held_cancel_press ... ok
+test platform::windows::tests::dib_headers_alpha_and_bottom_up ... ok
+test platform::windows::tests::activation_pending_accepts_only_panel_null_or_original_target ... ok
+test platform::windows::tests::only_exact_quick_or_external_target_can_transition ... ok
+test data::tests::no_absolute_or_traversal ... ok
+test escape::tests::job_completion_does_not_release_visible_session_escape ... ok
+test platform::windows::tests::text_is_full_utf16_with_terminator ... ok
+test escape::tests::unregister_failure_cannot_mark_panel_hidden_or_release_ownership ... ok
+test platform::windows::tests::only_attached_quick_panel_preserves_target ... ok
+test queue::tests::cancel_on_write_boundary_no_dispatch ... ok
+test queue::tests::closed_during_wait_stops_remainder ... ok
+test queue::tests::focus_switched_at_restore_event_never_restores_or_sends ... ok
+test queue::tests::focus_switched_does_not_restore_again ... ok
+test queue::tests::single_guard_all_request_kinds_until_release ... ok
+test queue::tests::panel_refocus_after_send_stops_queue_without_restoring_again ... ok
+test queue::tests::refusal_closed_clipboard_and_prepare_never_send ... ok
+test queue::tests::restored_native_refocus_cancels_but_initial_activation_notification_does_not ... ok
+test wake_policy_tests::capture_errors_only_preserve_exact_quick_panel ... ok
+test queue::tests::six_in_order_one_restore_and_truthful_done ... ok
+test platform::windows::tests::png_original_bytes_and_persistent_hdrop ... ok
+test queue::tests::concurrent_cancel_is_linearized_with_dispatch ... ok
+test queue::tests::third_party_during_activation_wait_rejects_without_retry ... ok
+test queue::tests::cancel_during_prepare_waits_worker_and_no_send ... ok
+test queue::tests::cancel_second_send_stops_remainder ... ok
+test queue::tests::cancellation_during_activation_wait_is_prompt_and_never_sends ... ok
+test queue::tests::third_party_during_first_preparation_never_activates_or_sends ... ok
+test queue::tests::visible_panel_continuous_calls_keep_target_and_do_not_refocus_panel ... ok
+test queue::tests::activation_timeout_never_hides_writes_or_retries ... ok
+test data::tests::controller_fixtures_load_100_cases_500_assets_and_hashes ... ok
+
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.18s
+

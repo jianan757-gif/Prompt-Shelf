@@ -1,0 +1,19 @@
+{
+  "revision": "4.3-round7",
+  "builtAt": "2026-10-24T21:34:42.1767992+08:00",
+  "exe": "poc/src-tauri/target-round7/release/prompt-shelf-poc.exe",
+  "sha256": "772e50e834ce416888fa732c816ee71c72ab46eee37ca9665e20c26a1234c174",
+  "change": "Replace native text-paste wait cursor with panel-local busy indicator; existing busy lifecycle unchanged",
+  "frontendTests": "15 passed",
+  "typecheckAndVite": "passed",
+  "releaseBuild": "passed",
+  "launcherSyntax": "passed",
+  "rustTests": "not rerun: Rust change is revision string only",
+  "windowsManual": "pending user stationary-mouse test, repeated paste and Esc",
+  "priorExe": "round6 preserved",
+  "evidence": [
+    "frontend-tests.txt",
+    "build.txt",
+    "observed-queue-end.jsonl"
+  ]
+}
