@@ -223,7 +223,7 @@ impl Store {
     }
     fn project(&self, case_id: Option<&str>, thumbnails: bool) -> Result<data::Library, String> {
         let connection = self.connection.lock().map_err(|e| e.to_string())?;
-        let mut statement=connection.prepare("SELECT c.id,c.title,c.prompt,coalesce(p.name,''),c.favorite,c.use_count FROM cases c LEFT JOIN projects p ON p.id=c.project_id WHERE c.deleted_at IS NULL AND (?1 IS NULL OR c.id=?1) ORDER BY c.created_at DESC,c.id").map_err(sql)?;
+        let mut statement=connection.prepare("SELECT c.id,c.title,c.prompt,coalesce(p.name,''),c.favorite,c.use_count,c.source_url,c.created_at,c.updated_at,c.last_used_at FROM cases c LEFT JOIN projects p ON p.id=c.project_id WHERE c.deleted_at IS NULL AND (?1 IS NULL OR c.id=?1) ORDER BY c.created_at DESC,c.id").map_err(sql)?;
         let mut cases = statement
             .query_map([case_id], |r| {
                 Ok(data::Case {
@@ -233,6 +233,7 @@ impl Store {
                     project: r.get(3)?,
                     favorite: r.get(4)?,
                     used: r.get::<_, i64>(5)? as u64,
+                    source_url:r.get(6)?,created_at:r.get(7)?,updated_at:r.get(8)?,last_used_at:r.get(9)?,
                     tags: vec![],
                     result: None,
                     refs: vec![],
@@ -283,6 +284,9 @@ impl Store {
             .collect::<Result<Vec<_>, _>>()
             .map_err(sql)?;
         drop(statement);
+        let projects=if case_id.is_none(){view_catalog(&connection,"SELECT id,name,created_at,0,sort_order FROM projects ORDER BY sort_order,created_at,id")?}else{vec![]};
+        let tags=if case_id.is_none(){view_catalog(&connection,"SELECT id,name,created_at,is_quick,quick_order FROM tags ORDER BY quick_order,created_at,id")?}else{vec![]};
+        let trash_count=if case_id.is_none(){connection.query_row("SELECT count(*) FROM cases WHERE deleted_at IS NOT NULL",[],|r|r.get::<_,i64>(0)).map_err(sql)? as u64}else{0};
         drop(connection);
         // Decoding and filesystem work never hold the database connection mutex.
         let mut output = vec![];
@@ -305,6 +309,7 @@ impl Store {
         Ok(data::Library {
             cases,
             assets: output,
+            projects,tags,trash_count,
         })
     }
     pub fn check(&self) -> Result<serde_json::Value, String> {
@@ -341,6 +346,11 @@ impl Store {
             serde_json::json!({"schemaVersion":SCHEMA_VERSION,"sqliteVersion":version,"cases":library.cases.len(),"assets":library.assets.len(),"caseAssetReferences":references,"integrity":"ok","foreignKeys":"ok","originalHashes":"ok"}),
         )
     }
+}
+fn view_catalog(connection:&Connection,query:&str)->Result<Vec<data::CatalogItem>,String>{
+    let mut statement=connection.prepare(query).map_err(sql)?;
+    let rows=statement.query_map([],|r|Ok(data::CatalogItem{id:r.get(0)?,name:r.get(1)?,created_at:r.get(2)?,is_quick:r.get(3)?,quick_order:r.get(4)?})).map_err(sql)?.collect::<Result<Vec<_>,_>>().map_err(sql)?;
+    Ok(rows)
 }
 fn catalog(
     tx: &Connection,

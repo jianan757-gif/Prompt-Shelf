@@ -4,6 +4,7 @@
 
 | 文件 | 来源及结论 |
 |---|---|
+| `b1-ui-results.json` | 既有前端19项、DTO定向1项、构建与CSS检查；Windows主要界面实测和用户视觉验收，明确自动化未覆盖项。原始截图/日志仅留本机 |
 | `stage-a-results.json` | Rust harness 47、前端 15 通过及两个 release 构建；100/500 离线导入/重开/拒绝重导通过。悬空链接分支因权限未实测，GUI 接入冒烟待人工验收 |
 | `round5-independent-results.json` | 独立复核汇总；Rust 27 项、前端 15 项通过 |
 | `round6-rust-tests.txt`、`round6-results.json` | 主控补测 Rust 32 项、前端 15 项及构建通过；独立验证仅完成局部静态审查 |

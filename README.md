@@ -2,11 +2,12 @@
 
 Windows 优先的图文提示词快捷调用工具技术原型，采用 **Tauri 2 + Rust + React/TypeScript**。
 
-**已发布基线 v0.1.0：4.3 Windows PoC；当前工作区：4.4 阶段 A 数据与资产底座。** 本轮只接入 SQLite、共享原图、缩略图和单实例，主库仍为只读 UI，不进入 B1。macOS 仅预留适配接口，未实现系统粘贴。
+**已发布基线 v0.1.0：4.3 Windows PoC；开发分支 `dev/4.4-b1-ui` 包含阶段 A 与已获用户视觉验收的 B1 主库 UI。** 当前仅实现正式主库浏览界面，尚未接入编辑保存业务，不进入 B2。macOS 仅预留适配接口，未实现系统粘贴。
 
 ## 审查入口
 
 - [4.4 架构与实施计划](Prompt%20Shelf%204.4%20正式开发架构与实施计划.md)、[阶段 A 交付说明](docs/public/stage-a-delivery.md)。
+- [B1 主库 UI 交付与视觉验收状态](docs/public/b1-ui-delivery.md)、[公开验证摘要](docs/validation/b1-ui-results.json)。阶段 A 回退点：独立提交 `b349f61`，标签 `baseline-stage-a`；B1 UI 为其后独立提交，main 保持 v0.1.0。
 - [技术验收与交接报告](docs/public/technical-handoff.md)：验收结果、模块职责、证据边界、遗留风险。
 - [测试证据说明](docs/validation/README.md)：已公开测试日志与未验证项。
 - [任务书](Prompt%20Shelf%204.2%C2%B7v2.0/PromptShelf_4.2_Tauri单主线技术选型与PoC任务书_v2.0.md)及 [V4.11 定稿原型](Prompt%20Shelf%204.2%C2%B7v2.0/demos/01_V4.11_素材管理UI冻结基线.html)。早期快捷面板样机仅供历史参考，冲突时以定稿与当前已确认交互为准。
@@ -29,20 +30,20 @@ Windows 优先的图文提示词快捷调用工具技术原型，采用 **Tauri 
 需要 Windows、WebView2、Rust MSVC、Visual Studio C++ Build Tools、Node.js（支持 `--experimental-strip-types`）、pnpm；生成样本另需 Python 与 Pillow。依赖版本以两个 lockfile 为准。
 
 ```powershell
-git clone https://github.com/jianan757-gif/Prompt-Shelf.git
+git clone --branch dev/4.4-b1-ui https://github.com/jianan757-gif/Prompt-Shelf.git
 cd Prompt-Shelf
 python -m pip install Pillow
 python scripts/generate-fixtures.py
 cd poc
 pnpm install --frozen-lockfile
-$env:CARGO_TARGET_DIR = Join-Path (Get-Location) 'src-tauri\target-stage-a'
+$env:CARGO_TARGET_DIR = Join-Path (Get-Location) 'src-tauri\target-stage-b1-ui'
 pnpm tauri build --no-bundle -- --locked
 cargo build --manifest-path src-tauri/Cargo.toml --release --bin prompt-shelf-store --locked
 cd ..
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\start-stage-a.ps1" -Fixture synthetic
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\start-b1-ui.ps1" -Fixture synthetic
 ```
 
-样本生成器拒绝覆盖已有 `fixtures/100x500`。ExecutionPolicy Bypass 仅用于该 PowerShell 进程。构建输出在 `poc/src-tauri/target-stage-a/release/`，不生成安装器。上述脚本将合成样本显式导入 `evidence/stage-a/manual-synthetic`，重启继续读取同一 SQLite 库，不覆盖旧 PoC；若需验证空库改用 `-Fixture empty`（表示不导入样本，不会清空已有数据）。
+样本生成器拒绝覆盖已有 `fixtures/100x500`。ExecutionPolicy Bypass 仅用于该 PowerShell 进程。当前构建输出在 `poc/src-tauri/target-stage-b1-ui/release/`，不生成安装器。上述脚本将合成样本显式导入 `evidence/b1-ui/manual-synthetic`，重启继续读取同一 SQLite 库，不覆盖阶段 A 或旧 PoC；若需验证空库改用 `-Fixture empty`（表示不导入样本，不会清空已有数据）。旧阶段 A 程序与 `start-stage-a.ps1` 保留。
 
 首次启动默认隐藏：在专用目标输入框内按 Ctrl+Alt+1 呼出面板，点击提示词或图片。更换目标时先点新目标输入框，再按热键重新绑定。托盘可打开主库或退出；启动脚本拒绝同时运行同项目多版本。私人混合样本不随仓库提供，请先使用 synthetic。
 
@@ -53,8 +54,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\start-stage-a
 无需启动 GUI 即可验证持久数据：
 
 ```powershell
-.\poc\src-tauri\target-stage-a\release\prompt-shelf-store.exe --data-dir .\evidence\stage-a\offline-library --import-manifest .\fixtures\100x500\manifest.json --check
-.\poc\src-tauri\target-stage-a\release\prompt-shelf-store.exe --data-dir .\evidence\stage-a\offline-library --check
+.\poc\src-tauri\target-stage-b1-ui\release\prompt-shelf-store.exe --data-dir .\evidence\b1-ui\offline-library --import-manifest .\fixtures\100x500\manifest.json --check
+.\poc\src-tauri\target-stage-b1-ui\release\prompt-shelf-store.exe --data-dir .\evidence\b1-ui\offline-library --check
 ```
 
 导入仅允许空库。重复导入非空库会拒绝，不会合并或覆盖；离线工具与 GUI 不能同时占用同一数据目录。源图片只读复制，原图按 SHA-256 共享，缩略图独立生成并按文件授权。旧 `scripts/start-poc.ps1` 仅供本地保留的 round7 历史程序使用。

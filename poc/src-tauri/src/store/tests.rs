@@ -1,6 +1,21 @@
 use super::*;
 use image::{ImageDecoder, ImageEncoder};
 
+#[test]
+fn readonly_projection_exposes_existing_dates_source_and_catalog_state(){
+    let directory=tempfile::tempdir().unwrap();let source=tempfile::tempdir().unwrap();
+    let store=store(directory.path());store.import_manifest(&fixture(source.path(),false)).unwrap();
+    {let connection=store.connection.lock().unwrap();
+     connection.execute("UPDATE cases SET source_url='https://example.com/reference',created_at=1000,updated_at=2000,last_used_at=3000",[]).unwrap();
+     connection.execute("UPDATE tags SET is_quick=1,quick_order=4,created_at=4000",[]).unwrap();}
+    let library=store.library().unwrap();assert_eq!(library.cases[0].source_url,"https://example.com/reference");
+    assert_eq!(library.cases[0].created_at,Some(1000));assert_eq!(library.cases[0].last_used_at,Some(3000));
+    assert_eq!(library.tags.len(),1);assert!(library.tags[0].is_quick);assert_eq!(library.tags[0].quick_order,4);assert_eq!(library.tags[0].created_at,4000);
+    assert_eq!(library.projects.len(),1);
+    store.connection.lock().unwrap().execute("UPDATE cases SET deleted_at=5000 WHERE id=(SELECT id FROM cases LIMIT 1)",[]).unwrap();
+    assert_eq!(store.library().unwrap().trash_count,1);
+}
+
 fn store(directory: &Path) -> Store {
     Store::open(DataPaths::new(directory).unwrap()).unwrap()
 }

@@ -1,6 +1,6 @@
-# Prompt Shelf · 4.4 阶段 A
+# Prompt Shelf · 4.4 B1 主库 UI
 
-沿用 Tauri 2 + Rust + React/TypeScript 工程，本阶段只实现本地数据与资产底座。快捷面板、只读主库从 SQLite 兼容 DTO 读取；不实现 B–F 的编辑、草稿业务、回收站或备份。窗口几何、样式、轮播、粘贴、焦点、队列和 Esc 语义保留。
+沿用 Tauri 2 + Rust + React/TypeScript 工程，底座来自阶段 A，本轮仅还原主库浏览 UI。快捷面板、只读主库从 SQLite 兼容 DTO 读取；不实现 B–F 的编辑、草稿业务、回收站或备份。窗口几何、样式、轮播、粘贴、焦点、队列和 Esc 语义保留。
 
 ## 构建与验证
 
@@ -11,13 +11,13 @@ cd poc
 pnpm install --frozen-lockfile
 pnpm test
 pnpm build
-$env:CARGO_TARGET_DIR = Join-Path $PWD 'src-tauri/target-stage-a'
+$env:CARGO_TARGET_DIR = Join-Path $PWD 'src-tauri/target-stage-b1-ui'
 cargo test --manifest-path src-tauri/Cargo.toml --locked
 pnpm tauri build --no-bundle -- --locked
 cargo build --manifest-path src-tauri/Cargo.toml --release --bin prompt-shelf-store --locked
 ```
 
-两个 exe 位于 target-stage-a/release/：prompt-shelf-poc.exe（主程序，文件名保留）、prompt-shelf-store.exe（离线工具）。旧 round7 等目录不覆盖。reports/stage-a/ 留测试、构建与哈希；编译/Mock 验证不代替真实目标接收和 Windows UI 手测。
+两个 exe 位于 target-stage-b1-ui/release/：prompt-shelf-poc.exe（主程序，文件名保留）、prompt-shelf-store.exe（离线工具）。旧阶段 A、round7 等目录不覆盖。reports/b1-ui/ 留本机测试、构建与哈希；编译/Mock 验证不代替真实目标接收和 Windows UI 手测。
 
 ## 数据目录与启动
 
@@ -86,3 +86,15 @@ reports/stage-a/                 本阶段证据
 ```
 
 新增依赖：rusqlite 0.41.0（bundled/backup，MIT）、libsqlite3-sys 0.39.1 自带 SQLite 3.54.1（public domain）；官方 tauri-plugin-single-instance 2.5.4（MIT/Apache-2.0）、tempfile 3.27.0（MIT/Apache-2.0），UUID 复用锁定的 1.x（MIT/Apache-2.0）。已有 image、sha2、Serde 等继续使用，实际版本见锁文件和 CLI sqliteVersion。官方依据：[单实例](https://v2.tauri.app/plugin/single-instance/)、[SQLite 版本](https://www.sqlite.org/changes.html)、[rusqlite](https://docs.rs/rusqlite/)。
+
+## 本轮 B1 UI 范围
+
+独立 LibraryManager / CaseCard / LibrarySidebar / CatalogPanel 按冻结 V4.11 转为 React，沿用原型 SVG、尺寸与样式；V5.0 仅保留入口语义，不实现编辑、保存、草稿或回收站/备份业务。原型的演示条、重置与模拟中断工具不进入产品。
+
+可用：SQLite 只读浏览、关键词搜索、集合/项目/标签筛选、常规网格/瀑布流、二级分类栏、单/双列分类、分类搜索/时间和名称排序、栏宽拖动、90px 图片与逐张箭头、词典规则预览和原生窗口控制。分类与日期/来源/回收站数量只读既有列，未标快捷的标签不会自动变快捷。
+
+未开放入口：新建/编辑案例、收藏修改、来源外链打开、原图预览、分类新增/编辑/重命名/删除、快捷标签设置/排序、回收站、备份恢复。只显示轻提示，不写 SQLite，不假保存、不承诺草稿已保护。
+
+本轮构建目录为 src-tauri/target-stage-b1-ui；同名 GUI/CLI 文件及 --data-dir / --import-manifest / --check 参数保持。主库与快捷面板在 main.tsx 显式分支加载各自 CSS；scripts/check-ui-build.mjs 检查实际发布入口的 CSS 预加载依赖；复现命令：先运行 pnpm build，再运行 pnpm check:ui-build。前端保留原测试并增加只读排序/日期检查，Rust 仅跑受影响 DTO 定向测试，不重复完整 PoC。
+
+主控已完成 Windows 主要界面实测，2026-10-25 用户确认 B1 主库 UI 视觉验收通过。自动化未成功验证原生移动/缩窄，未完成原型浏览器渲染图逐像素比较；详见 ../docs/public/b1-ui-delivery.md。当前不继续编辑保存业务。

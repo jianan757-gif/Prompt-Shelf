@@ -1,3 +1,4 @@
+/* V4.11 frozen prototype stylesheet; product-only frame follows below. */
 
 :root{--blue:#245bff;--bluebg:#ebf1ff;--ink:#273752;--sub:#687891;--dim:#93a0b5;--line:#e1e8f1;--soft:#f6f8fc;--rail-w:224px;--sub-w:238px;--shadow:0 9px 35px #22344910}
 *{box-sizing:border-box}html,body{margin:0;height:100%;background:#edf2f8;color:var(--ink);font:13px/1.5 Inter,"Segoe UI","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}button,input,textarea,select{font:inherit}button{cursor:pointer;border:0}input,textarea,select{outline:none;color:var(--ink)}:focus-visible{outline:2px solid #6390ff;outline-offset:2px}button:disabled{opacity:.4;cursor:not-allowed}
@@ -364,3 +365,27 @@ html,body,.rail-inner,.secondary-list,.scrollarea,.ref-strip,.quickbar,.project-
 @media(max-width:1480px){.libraryhead .headrow{align-items:center;flex-wrap:wrap}.libraryhead .v410-toolbar{width:auto;margin-left:auto;justify-content:flex-end}}
 @media(max-width:860px){.top-actions{gap:5px}.top-actions .btn.sm{font-size:10px;padding:0 6px}.window-divider{margin:0 2px 0 4px}.window-btn{width:31px}.quick-filter-row{gap:6px}.libraryhead .v410-toolbar{gap:5px}}
 @media(max-width:690px){.topbar .breadcrumb{display:none}.topbar{gap:4px;padding:0 7px}.top-actions .btn.sm{font-size:0;gap:0;min-width:30px;padding:0 7px}.top-actions .btn.sm svg{width:16px;height:16px}.top-actions #trashBadge{font-size:9px}.window-divider{margin:0 1px}.window-btn{width:27px}.libraryhead .v410-toolbar{margin-left:0}.quick-filter-row .toolbar-clear{height:29px;padding:0 6px;font-size:10px}}
+
+/* Native product frame excludes the prototype studybar/footer. Window CSS is loaded only in its own branch. */
+html[data-window="library"],html[data-window="library"] body,#root{height:100%;width:100%;overflow:hidden}
+.library-root{height:100dvh;width:100%;display:flex;flex-direction:column;overflow:hidden}
+.library-root>.workspace{border:0;border-radius:0;box-shadow:none;width:100%;height:100%;min-height:0}
+.library-root .brand{align-self:stretch;min-width:0}
+.library-root .brand .breadcrumb{font-weight:400}
+.library-root .thumb-art img{display:block;object-fit:contain;width:100%;height:100%}
+.library-root .thumb-loading{color:#a6b5c5;display:grid;place-items:center;width:100%;height:100%}
+.library-root .media .result-pic,.library-root .media .ref-pic{padding:0;display:block}
+.library-root .prompt{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.library-root .scrollarea{overscroll-behavior:contain}
+.library-root .splitter{touch-action:none}
+.library-root .reference-track>.ref-pic{height:90px;min-height:90px;flex:none}
+.library-root .library-toast{position:fixed;z-index:2100;right:23px;bottom:23px;background:#253653;color:white;padding:11px 15px;border-radius:9px;box-shadow:0 10px 25px #1d2a4433;font-size:12px;max-width:min(430px,90vw)}
+.library-root .dictionary-shade{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:#1c2e4d33;padding:15px}
+.library-root .dictionary-panel{max-width:580px;width:100%;background:#fff;border-radius:12px;padding:24px;box-shadow:0 15px 70px #14284030}
+.library-root .dictionary-panel h2{font-size:17px;margin:0 0 8px}
+.library-root .dictionary-panel p{font-size:12px;color:#64758d;line-height:1.7}
+.library-root .dictionary-rows{display:grid;grid-template-columns:1fr 2fr;gap:8px 20px;font-size:12px;margin:15px 0}
+.library-root .dictionary-rows>div{border-bottom:1px solid #e9edf4;padding:5px}
+.library-root .mac-titlebar{padding-left:80px}
+.library-root .mac-titlebar .window-divider,.library-root .mac-titlebar .window-controls{display:none}
+.library-root .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

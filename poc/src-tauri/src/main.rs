@@ -21,7 +21,7 @@ use tauri::{
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 type Target = <NativePlatform as PastePlatform>::Target;
-const BUILD_REVISION: &str = "4.4-stage-a";
+const BUILD_REVISION: &str = "4.4-b1-ui";
 struct Runtime {
     platform: Arc<NativePlatform>,
     queue: Arc<queue::Queue>,
@@ -171,7 +171,7 @@ fn get_boot(window: tauri::WebviewWindow, state: tauri::State<Runtime>) -> serde
         None
     };
     let session = state.escape.lock().unwrap();
-    serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-stage-a","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"escapeRegistered":session.registered,"escapeError":session.error})
+    serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-b1-ui","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"escapeRegistered":session.registered,"escapeError":session.error})
 }
 #[tauri::command]
 async fn search_ready(
@@ -265,7 +265,7 @@ fn create_library(app: &tauri::AppHandle) -> Result<(), String> {
         "library_manager",
         WebviewUrl::App("index.html?window=library".into()),
     )
-    .title("Prompt Shelf · 主库浏览 PoC")
+    .title("Prompt Shelf · 素材资料库")
     .inner_size(1360.0, 860.0)
     .min_inner_size(960.0, 580.0)
     .decorations(false)
@@ -436,7 +436,7 @@ fn main() {
             runtime.log("startup",serde_json::json!({"cases":case_count,"assets":asset_count,"exe":std::env::current_exe().ok(),"revision":BUILD_REVISION,"platform":std::env::consts::OS,"resourceThreshold":"baseline_only_not_approved"}));
             app.manage(runtime);
             let quick=MenuItem::with_id(app,"quick","快捷面板 · Ctrl+Alt+1",true,None::<&str>)?;
-            let library=MenuItem::with_id(app,"library","主库浏览 · PoC",true,None::<&str>)?;
+            let library=MenuItem::with_id(app,"library","主库浏览",true,None::<&str>)?;
             let logs=MenuItem::with_id(app,"logs",format!("日志：{}",app.state::<Runtime>().log_path.display()),false,None::<&str>)?;
             let quit=MenuItem::with_id(app,"quit","退出 PoC",true,None::<&str>)?;
             let status=MenuItem::with_id(app,"status","待命 · 错误保留于此；快捷键打开查看详情",false,None::<&str>)?;

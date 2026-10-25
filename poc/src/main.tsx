@@ -1,7 +1,16 @@
 import React from 'react';
 import {createRoot} from 'react-dom/client';
-import {App} from './App';
 const library=new URLSearchParams(location.search).get('window')==='library';
-await (library?import('./library.css'):import('./quick.css'));
-await import('./poc.css');
-createRoot(document.getElementById('root')!).render(<App library={library}/>);
+document.documentElement.dataset.window=library?'library':'quick';
+const root=createRoot(document.getElementById('root')!);
+// Keep explicit branches: the production preloader must retain each window's CSS.
+if(library){
+  await import('./library.css');
+  const {LibraryManager}=await import('./library/LibraryManager');
+  root.render(<LibraryManager/>);
+}else{
+  await import('./quick.css');
+  await import('./poc.css');
+  const {App}=await import('./App');
+  root.render(<App library={false}/>);
+}
