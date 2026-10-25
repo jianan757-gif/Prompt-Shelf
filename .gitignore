@@ -15,6 +15,7 @@
 **/dist/
 **/target/
 **/target-round*/
+**/target-stage*/
 **/gen/
 **/__pycache__/
 *.pyc

@@ -1,8 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-mod data;
 mod escape;
 mod platform;
 mod queue;
+use prompt_shelf_poc::{data,paths::DataPaths,store::Store,scope::authorize_thumbnails};
 use platform::{NativePlatform, PasteItem, PastePlatform};
 use std::{
     io::Write,
@@ -21,13 +21,13 @@ use tauri::{
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 type Target = <NativePlatform as PastePlatform>::Target;
-const BUILD_REVISION: &str = "4.3-round7";
+const BUILD_REVISION: &str = "4.4-stage-a";
 struct Runtime {
     platform: Arc<NativePlatform>,
     queue: Arc<queue::Queue>,
     escape: Mutex<escape::EscapeSession>,
     target: Mutex<Option<Target>>,
-    library: data::Library,
+    store: Arc<Store>,
     log: Mutex<std::fs::File>,
     log_path: PathBuf,
     token: AtomicU64,
@@ -152,8 +152,11 @@ fn wake(app: &tauri::AppHandle, tab: &str, from_hotkey: bool) {
     }
 }
 #[tauri::command]
-fn get_library(state: tauri::State<Runtime>) -> data::Library {
-    state.library.clone()
+async fn get_library(app: tauri::AppHandle, state: tauri::State<'_,Runtime>) -> Result<data::Library,String> {
+    let store=state.store.clone();
+    let library=tauri::async_runtime::spawn_blocking(move||store.library()).await.map_err(|e|e.to_string())??;
+    authorize_thumbnails(&app,&state.store,&library)?;
+    Ok(library)
 }
 #[tauri::command]
 fn get_boot(window: tauri::WebviewWindow, state: tauri::State<Runtime>) -> serde_json::Value {
@@ -168,21 +171,23 @@ fn get_boot(window: tauri::WebviewWindow, state: tauri::State<Runtime>) -> serde
         None
     };
     let session = state.escape.lock().unwrap();
-    serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.3","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"escapeRegistered":session.registered,"escapeError":session.error})
+    serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-stage-a","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"escapeRegistered":session.registered,"escapeError":session.error})
 }
 #[tauri::command]
-fn search_ready(
+async fn search_ready(
     window: tauri::WebviewWindow,
-    state: tauri::State<Runtime>,
+    state: tauri::State<'_,Runtime>,
     elapsed_ms: f64,
     result_count: usize,
     sequence: u64,
     superseded: bool,
 ) -> Result<(), String> {
-    if !elapsed_ms.is_finite() || elapsed_ms < 0.0 || result_count > state.library.cases.len() {
+    let store=state.store.clone();
+    let (cases,assets)=tauri::async_runtime::spawn_blocking(move||store.counts()).await.map_err(|e|e.to_string())??;
+    if !elapsed_ms.is_finite() || elapsed_ms < 0.0 || result_count > cases {
         return Err("invalid_search_measurement".into());
     }
-    state.log(if superseded{"search_superseded"}else{"search_interactive"},serde_json::json!({"elapsedMs":elapsed_ms,"resultCount":result_count,"sequence":sequence,"window":window.label(),"cases":state.library.cases.len(),"assets":state.library.assets.len(),"measurement":"input_to_react_results_commit_and_raf","queryRecorded":false}));
+    state.log(if superseded{"search_superseded"}else{"search_interactive"},serde_json::json!({"elapsedMs":elapsed_ms,"resultCount":result_count,"sequence":sequence,"window":window.label(),"cases":cases,"assets":assets,"measurement":"input_to_react_results_commit_and_raf","queryRecorded":false}));
     Ok(())
 }
 #[tauri::command]
@@ -307,10 +312,10 @@ fn window_action(window: tauri::WebviewWindow, action: String) -> Result<(), Str
     .map_err(|e| e.to_string())
 }
 #[tauri::command]
-fn paste(
+async fn paste(
     app: tauri::AppHandle,
     window: tauri::WebviewWindow,
-    state: tauri::State<Runtime>,
+    state: tauri::State<'_,Runtime>,
     case_id: String,
     kind: String,
     index: Option<usize>,
@@ -328,40 +333,16 @@ fn paste(
         .unwrap()
         .clone()
         .ok_or("no_external_target_use_global_hotkey")?;
-    let case = state
-        .library
-        .cases
-        .iter()
-        .find(|c| c.id == case_id)
-        .ok_or("unknown_case")?;
-    let image = |id: &str| {
-        state
-            .library
-            .asset_path(id)
-            .map(|path| PasteItem::Image(path, id.into()))
-    };
-    let items = match kind.as_str() {
-        "text" => vec![PasteItem::Text(case.prompt.clone())],
-        "result" => vec![image(case.result.as_deref().ok_or("no_result")?)?],
-        "reference" => vec![image(
-            case.refs
-                .get(index.ok_or("missing_reference_index")?)
-                .ok_or("reference_out_of_range")?,
-        )?],
-        "queue" => case
-            .refs
-            .iter()
-            .map(|id| image(id))
-            .collect::<Result<Vec<_>, _>>()?,
-        _ => return Err("unknown_paste_kind".into()),
-    };
-    if items.is_empty() {
-        return Err("empty_queue".into());
-    }
     if !state.escape.lock().unwrap().can_paste() {
         return Err("global_escape_unavailable_no_paste: 请重新呼出面板以注册全局 Esc".into());
     }
-    let ticket = state.queue.reserve()?;
+    let ticket=state.queue.reserve()?;
+    let store=state.store.clone();let lookup_id=case_id.clone();let lookup_kind=kind.clone();
+    let prepared=tauri::async_runtime::spawn_blocking(move||{
+        let library=store.case_snapshot(&lookup_id)?;
+        paste_items(&library,&lookup_id,&lookup_kind,index)
+    }).await.map_err(|e|e.to_string()).and_then(|result|result);
+    let items=match prepared {Ok(items)=>items,Err(error)=>{state.queue.release();return Err(error)}};
     let id = ticket.id;
     let platform = state.platform.clone();
     let queue = state.queue.clone();
@@ -381,30 +362,53 @@ fn paste(
                     let label = if let Some(error) = &event.error {
                         format!("粘贴已停止：{error}；Ctrl+Alt+1 查看详情")
                     } else {
-                        format!(
-                            "{} · 已触发 {}/{}，未确认接收",
-                            event.phase, event.done, event.total
-                        )
+                        format!("{} · 已触发 {}/{}，未确认接收",event.phase,event.done,event.total)
                     };
-                    if let Some(status) =
-                        app.state::<Runtime>().tray_status.lock().unwrap().as_ref()
-                    {
-                        let _ = status.set_text(&label);
-                    }
-                    if let Some(tray) = app.tray_by_id("main") {
-                        let _ = tray.set_tooltip(Some(&label));
-                    }
+                    if let Some(status)=app.state::<Runtime>().tray_status.lock().unwrap().as_ref(){let _=status.set_text(&label);}
+                    if let Some(tray)=app.tray_by_id("main"){let _=tray.set_tooltip(Some(&label));}
                 }
                 let _ = app.emit("queue-progress", event);
             },
-        )
-        .await;
+        ).await;
         queue.release();
     });
     Ok(id)
 }
+fn paste_items(library:&data::Library,case_id:&str,kind:&str,index:Option<usize>)->Result<Vec<PasteItem>,String>{
+    let case = library.cases
+        .iter()
+        .find(|c| c.id == case_id)
+        .ok_or("unknown_case")?;
+    let image = |id: &str| {
+        library.asset_path(id)
+            .map(|path| PasteItem::Image(path, id.into()))
+    };
+    let items = match kind {
+        "text" => vec![PasteItem::Text(case.prompt.clone())],
+        "result" => vec![image(case.result.as_deref().ok_or("no_result")?)?],
+        "reference" => vec![image(
+            case.refs
+                .get(index.ok_or("missing_reference_index")?)
+                .ok_or("reference_out_of_range")?,
+        )?],
+        "queue" => case
+            .refs
+            .iter()
+            .map(|id| image(id))
+            .collect::<Result<Vec<_>, _>>()?,
+        _ => return Err("unknown_paste_kind".into()),
+    };
+    if items.is_empty() {
+        return Err("empty_queue".into());
+    }
+    Ok(items)
+}
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app,_,_|{
+            // No argument forwarding, import, target capture or hotkey registration on repeat start.
+            if let Some(state)=app.try_state::<Runtime>(){state.log("second_instance_ignored",serde_json::json!({}));}
+        }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(|app,shortcut,event|{
             if shortcut.matches(Modifiers::empty(),Code::Escape){let _=handle_escape(app,escape::Source::Global,event.state()==ShortcutState::Pressed,false);return;}
             if event.state()!=ShortcutState::Pressed{return;}
@@ -412,16 +416,24 @@ fn main() {
         }).build())
         .invoke_handler(tauri::generate_handler![get_library,get_boot,ready,search_ready,hide_panel,panel_escape,cancel_queue,panel_interaction,open_library,close_library,window_action,paste])
         .setup(|app|{
-            let directory=app.path().app_local_data_dir()?.join("logs");std::fs::create_dir_all(&directory)?;
+            let mut arguments=std::env::args_os().skip(1);let mut override_directory=None;
+            while let Some(argument)=arguments.next(){
+                if argument=="--data-dir"&&override_directory.is_none(){override_directory=Some(PathBuf::from(arguments.next().ok_or("missing_data_dir")?));}
+                else{return Err("GUI usage: prompt-shelf-poc [--data-dir <directory>]; offline import uses prompt-shelf-store".into());}
+            }
+            let root=override_directory.unwrap_or(app.path().app_local_data_dir()?);
+            let store=tauri::async_runtime::block_on(tauri::async_runtime::spawn_blocking(move||Store::open(DataPaths::new(&root)?))).map_err(std::io::Error::other)?.map_err(std::io::Error::other)?;
+            let store=Arc::new(store);let directory=store.paths().logs();
             let log_path=directory.join("poc.jsonl");let log=std::fs::OpenOptions::new().create(true).append(true).open(&log_path)?;
-            let library=match data::locate(){Some(path)=>data::Library::load(&path).map_err(std::io::Error::other)?,None=>data::Library::demo()};
-            // Exact file allowlist; originals are never exposed over asset protocol.
-            for asset in &library.assets{app.asset_protocol_scope().allow_file(&asset.thumbnail)?;}
+            let reader=store.clone();
+            let library=tauri::async_runtime::block_on(tauri::async_runtime::spawn_blocking(move||reader.library())).map_err(std::io::Error::other)?.map_err(std::io::Error::other)?;
+            authorize_thumbnails(app.handle(),&store,&library).map_err(std::io::Error::other)?;
+            let (case_count,asset_count)=(library.cases.len(),library.assets.len());
             let platform=Arc::new(NativePlatform::default());
             #[cfg(target_os="windows")]
             if let Some(window)=app.get_webview_window("quick_panel"){platform.attach_window(&window)?;}
-            let runtime=Runtime{platform,queue:Arc::new(queue::Queue::default()),escape:Mutex::new(escape::EscapeSession::default()),target:Mutex::new(None),library,log:Mutex::new(log),log_path,token:AtomicU64::new(1),wake:Mutex::new(None),library_start:Mutex::new(None),library_creating:Mutex::new(false),tray_status:Mutex::new(None)};
-            runtime.log("startup",serde_json::json!({"cases":runtime.library.cases.len(),"assets":runtime.library.assets.len(),"exe":std::env::current_exe().ok(),"revision":BUILD_REVISION,"platform":std::env::consts::OS,"resourceThreshold":"baseline_only_not_approved"}));
+            let runtime=Runtime{platform,queue:Arc::new(queue::Queue::default()),escape:Mutex::new(escape::EscapeSession::default()),target:Mutex::new(None),store,log:Mutex::new(log),log_path,token:AtomicU64::new(1),wake:Mutex::new(None),library_start:Mutex::new(None),library_creating:Mutex::new(false),tray_status:Mutex::new(None)};
+            runtime.log("startup",serde_json::json!({"cases":case_count,"assets":asset_count,"exe":std::env::current_exe().ok(),"revision":BUILD_REVISION,"platform":std::env::consts::OS,"resourceThreshold":"baseline_only_not_approved"}));
             app.manage(runtime);
             let quick=MenuItem::with_id(app,"quick","快捷面板 · Ctrl+Alt+1",true,None::<&str>)?;
             let library=MenuItem::with_id(app,"library","主库浏览 · PoC",true,None::<&str>)?;
@@ -433,7 +445,6 @@ fn main() {
             let icon=tauri::image::Image::new_owned([36u8,91,255,255].repeat(32*32),32,32);
             TrayIconBuilder::with_id("main").icon(icon).tooltip("Prompt Shelf · 4.3 PoC").menu(&menu).on_menu_event(|app,event|match event.id.as_ref(){"quick"=>wake(app,"all",false),"library"=>{let app=app.clone();tauri::async_runtime::spawn(async move{if let Err(error)=open_library(app.clone()).await{app.state::<Runtime>().log("library_create_failed",serde_json::json!({"error":error}));if let Some(status)=app.state::<Runtime>().tray_status.lock().unwrap().as_ref(){let _=status.set_text(format!("主库创建失败：{error}"));}}});},"quit"=>{let cancelled=app.state::<Runtime>().queue.cancel();app.state::<Runtime>().log("exit",serde_json::json!({"cancelAccepted":cancelled,"dispatchBoundary":"cancel waits for any already-started dispatch; no new dispatch after acceptance"}));app.exit(0);},_=>{}}).build(app)?;
             for code in [Code::Digit1,Code::Digit2,Code::Digit3]{app.global_shortcut().register(Shortcut::new(Some(Modifiers::CONTROL|Modifiers::ALT),code))?;}
-            if std::env::args().any(|arg|arg=="--verify-assets"){app.state::<Runtime>().library.verify_hashes().map_err(std::io::Error::other)?;app.state::<Runtime>().log("asset_hashes_verified",serde_json::json!({"count":app.state::<Runtime>().library.assets.len()}));}
             Ok(())
         })
         .on_window_event(|window,event|{
@@ -460,5 +471,28 @@ mod wake_policy_tests {
             true,
             "quick_panel_keep_previous_target"
         ));
+    }
+    #[test]
+    fn sqlite_snapshot_feeds_existing_text_and_original_image_preparation() {
+        use super::*;
+        let directory=tempfile::tempdir().unwrap();let source=tempfile::tempdir().unwrap();
+        let image=source.path().join("原图.png");let thumb=source.path().join("old-thumb.png");
+        image::RgbaImage::from_pixel(8,6,image::Rgba([20,40,60,120])).save(&image).unwrap();std::fs::copy(&image,&thumb).unwrap();
+        let manifest=source.path().join("manifest.json");
+        std::fs::write(&manifest,serde_json::to_vec(&serde_json::json!({"schema_version":1,"assets":[{"id":"a","original":"原图.png","thumb":"old-thumb.png","width":8,"height":6}],"cases":[{"id":"c","title":"存储接入","prompt":"完整第一行\n完整第二行","project":"","tags":[],"favorite":false,"used":0,"result":"a","refs":["a","a"]}]})).unwrap()).unwrap();
+        let store=Store::open(DataPaths::new(directory.path()).unwrap()).unwrap();store.import_manifest(&manifest).unwrap();
+        let case_id=store.library().unwrap().cases[0].id.clone();let snapshot=store.case_snapshot(&case_id).unwrap();
+        let text=paste_items(&snapshot,&case_id,"text",None).unwrap();
+        assert!(matches!(&text[0],PasteItem::Text(value) if value=="完整第一行\n完整第二行"));
+        NativePlatform::default().prepare(text[0].clone()).unwrap();
+        for (kind,index,total) in [("result",None,1),("reference",Some(1),1),("queue",None,2)]{
+            let items=paste_items(&snapshot,&case_id,kind,index).unwrap();assert_eq!(items.len(),total);
+            for item in items{
+                let PasteItem::Image(path,_)=&item else{panic!("expected original image")};
+                assert!(path.starts_with(store.paths().root().join("assets")));assert_eq!(std::fs::read(path).unwrap(),std::fs::read(&image).unwrap());
+                // Preparation constructs existing clipboard representations; no write/dispatch/OS input.
+                NativePlatform::default().prepare(item).unwrap();
+            }
+        }
     }
 }

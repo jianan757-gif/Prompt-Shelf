@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Prompt Shelf PoC",
+  "productName": "Prompt Shelf",
   "version": "0.1.0",
-  "identifier": "local.promptshelf.poc",
+  "identifier": "io.github.jianan757-gif.promptshelf",
   "build": { "beforeDevCommand": "pnpm dev", "devUrl": "http://localhost:1420", "beforeBuildCommand": "pnpm build", "frontendDist": "../dist" },
   "app": {
     "windows": [{ "label": "quick_panel", "title": "Prompt Shelf · 4.3 PoC", "width": 560, "height": 790, "minWidth": 540, "minHeight": 420, "visible": false, "alwaysOnTop": true, "decorations": false, "resizable": true }],

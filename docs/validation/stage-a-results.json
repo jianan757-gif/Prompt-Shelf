@@ -1,0 +1,116 @@
+{
+  "date": "2026-10-25",
+  "stage": "4.4-A",
+  "baseCommit": "dbccd3441c120169870c2f2406f187db46b45322",
+  "workingTreeChangesCommitted": false,
+  "rustHarness": {
+    "limitation": "Dangling symlink branch NOT_EXERCISED: Windows privilege 1314",
+    "passed": 47,
+    "failed": 0
+  },
+  "frontendTests": {
+    "failed": 0,
+    "passed": 15
+  },
+  "typescriptVite": "PASS",
+  "windowsRelease": "PASS",
+  "cliRelease": "PASS",
+  "executables": [
+    {
+      "file": "prompt-shelf-poc.exe",
+      "bytes": 12564992,
+      "sha256": "0bb9fe2d669ede6e0aacf7c70f6221ef2c90d49f063ce28bada37ce8362eca5a"
+    },
+    {
+      "file": "prompt-shelf-store.exe",
+      "bytes": 3057664,
+      "sha256": "d49ddab8745b21e6a3a19d3c64d1521c91d94360047527d4a4ade06d61d13fd6"
+    }
+  ],
+  "offline100x500": {
+    "at": "2026-10-25T15:35:51.164092+08:00",
+    "cliSha256": "D49DDAB8745B21E6A3A19D3C64D1521C91D94360047527D4A4ADE06D61D13FD6",
+    "manifestSha256": "8AA580B3E023C74B1AAE0580ECC272F1FE170D8585020E6BDF4CD22D5C0266A8",
+    "sourceImagesUnchanged": 500,
+    "originalFileCount": 500,
+    "thumbnailFileCount": 500,
+    "steps": [
+      {
+        "step": "empty",
+        "exitCode": 0,
+        "elapsedMs": 101.4463,
+        "result": {
+          "assets": 0,
+          "caseAssetReferences": 0,
+          "cases": 0,
+          "foreignKeys": "ok",
+          "integrity": "ok",
+          "originalHashes": "ok",
+          "schemaVersion": 1,
+          "sqliteVersion": "3.54.1"
+        }
+      },
+      {
+        "step": "import",
+        "exitCode": 0,
+        "elapsedMs": 11592.4321,
+        "result": {
+          "assets": 500,
+          "caseAssetReferences": 501,
+          "cases": 100,
+          "foreignKeys": "ok",
+          "integrity": "ok",
+          "originalHashes": "ok",
+          "schemaVersion": 1,
+          "sqliteVersion": "3.54.1"
+        }
+      },
+      {
+        "step": "reopen",
+        "exitCode": 0,
+        "elapsedMs": 371.1417,
+        "result": {
+          "assets": 500,
+          "caseAssetReferences": 501,
+          "cases": 100,
+          "foreignKeys": "ok",
+          "integrity": "ok",
+          "originalHashes": "ok",
+          "schemaVersion": 1,
+          "sqliteVersion": "3.54.1"
+        }
+      },
+      {
+        "step": "reject-repeat",
+        "exitCode": 1,
+        "elapsedMs": 35.7272
+      },
+      {
+        "step": "after-rejection",
+        "exitCode": 0,
+        "elapsedMs": 371.3593,
+        "result": {
+          "assets": 500,
+          "caseAssetReferences": 501,
+          "cases": 100,
+          "foreignKeys": "ok",
+          "integrity": "ok",
+          "originalHashes": "ok",
+          "schemaVersion": 1,
+          "sqliteVersion": "3.54.1"
+        }
+      }
+    ],
+    "guiTested": false,
+    "performanceThresholdEvaluated": false
+  },
+  "preservedCoreAndUIHashes": "11 of 11 unchanged, including historical round7 exe",
+  "sourceSnapshot": {
+    "manifestSha256": "5d12d615a35a5cfd4830718e2d09169609024f538cd46278659b9e953d38b374",
+    "unchangedAfterBuild": true,
+    "files": 46
+  },
+  "manualGUI": "PENDING: empty/restart, single instance, SQLite text/single-image paste",
+  "exitGate": "IMPLEMENTATION_AND_AUTOMATION_DONE_MANUAL_SMOKE_PENDING",
+  "nextStageStarted": false
+}

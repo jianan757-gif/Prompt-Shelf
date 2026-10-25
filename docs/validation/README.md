@@ -1,9 +1,10 @@
 # 公开验证证据
 
-本目录是既有证据的公开副本，不是新测试。机器路径已脱敏；原始日志和私人截图留在本机。
+本目录收录公开验证摘要。round5～round7 为历史证据副本；stage-a 为 4.4 本轮针对性验证。机器路径已脱敏；原始日志和私人截图留在本机。
 
 | 文件 | 来源及结论 |
 |---|---|
+| `stage-a-results.json` | Rust harness 47、前端 15 通过及两个 release 构建；100/500 离线导入/重开/拒绝重导通过。悬空链接分支因权限未实测，GUI 接入冒烟待人工验收 |
 | `round5-independent-results.json` | 独立复核汇总；Rust 27 项、前端 15 项通过 |
 | `round6-rust-tests.txt`、`round6-results.json` | 主控补测 Rust 32 项、前端 15 项及构建通过；独立验证仅完成局部静态审查 |
 | `round7-frontend-tests.txt` | 前端 15 项通过；本轮 Rust 仅改版本标识，未重复全套 Rust 测试 |
