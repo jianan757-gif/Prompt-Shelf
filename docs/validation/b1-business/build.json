@@ -1,0 +1,11 @@
+{
+  "builtAt": "2026-10-27T08:33:22.4365667+08:00",
+  "purpose": "Search focus ring removal and Chinese required-field messages",
+  "executable": "poc/src-tauri/target-stage-b1-business/release/prompt-shelf-poc.exe",
+  "sha256": "8740E016E41633DB651243185C3CEFEE516464A919DA7875DC6A3DCDA669B094",
+  "release": "PASS",
+  "packagedCss": "PASS",
+  "sharedImageTargetedTest": "PASS",
+  "visualAcceptance": "PASS - user confirmed search fields and all B1 checks on 2026-10-27",
+  "previousBusinessAcceptance": "User passed items 1-8 on 2026-10-27"
+}

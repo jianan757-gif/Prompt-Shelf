@@ -1,6 +1,7 @@
 import {createContext,useContext,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import {invoke,convertFileSrc,isTauri} from '@tauri-apps/api/core';
 import {listen} from '@tauri-apps/api/event';
+import {LatestRead,selectionAfterRefresh} from './refresh';
 import {dictionary,filterCases,highlightParts} from './search';
 import {ReferenceCarousel} from './ReferenceCarousel';
 import {progressRouting,rememberProgress,terminalPhase as terminal,wakeView} from './session';
@@ -35,6 +36,8 @@ export function App({library}:{library:boolean}) {
   const [busy,setBusy]=useState(false);const locked=useRef(false);const [message,setMessage]=useState('');const [dict,setDict]=useState(false);
   const activeRequest=useRef<number|null>(null);const pendingInteraction=useRef(false);const requestGeneration=useRef(0);
   const earlyProgress=useRef(new Map<number,Progress>());
+  const libraryReads=useRef(new LatestRead());const refreshLibrary=useRef<()=>Promise<void>>(async()=>{});
+  const pendingSelection=useRef<{id:string|null;index:number}|null>(null);const skipSelectionScroll=useRef(false);
   const liveWindowEvent=useRef(false);
   const globalEscape=useRef(false);const liveEscapeEvent=useRef(false);const [escapeError,setEscapeError]=useState<string|null>(null);
   const [queueCaseId,setQueueCaseId]=useState<string|null>(null);
@@ -49,6 +52,8 @@ export function App({library}:{library:boolean}) {
   const assets=useMemo(()=>new Map(data.assets.map(a=>[a.id,a])),[data.assets]);
   const matches=useMemo(()=>filterCases(data.cases,query,tab,tag,project,sort),[data,query,tab,tag,project,sort]);
   const items=useMemo(()=>library?matches:matches.slice(0,50),[library,matches]);
+  const latestItems=useRef<Case[]>([]);latestItems.current=items;
+  useLayoutEffect(()=>{const snapshot=pendingSelection.current;if(!snapshot)return;pendingSelection.current=null;const next=selectionAfterRefresh(items.map(record=>record.id),snapshot.id,snapshot.index);if(next!==sessionView.current.selected){skipSelectionScroll.current=true;setSelected(next)}},[items]);
   const tags=useMemo(()=>[...new Set(data.cases.flatMap(c=>c.tags))],[data]);
   const projects=useMemo(()=>[...new Set(data.cases.map(c=>c.project).filter(Boolean))],[data]);
   const run=async(command:string,args?:Record<string,unknown>)=>{try{return await invoke(command,args)}catch(e){setMessage(String(e));return undefined}};
@@ -93,6 +98,14 @@ export function App({library}:{library:boolean}) {
   useEffect(()=>{
     let disposed=false;const unlisten:(()=>void)[]=[];
     if(!isTauri()){setMessage('浏览器预览 · 系统粘贴、资源与窗口功能需启动 Tauri PoC');return}
+    const refresh=async()=>{
+      const token=libraryReads.current.begin();
+      try{const catalog=await invoke<Library>('get_library');if(disposed||!libraryReads.current.accepts(token))return;
+        const index=sessionView.current.selected;pendingSelection.current={id:latestItems.current[index]?.id??null,index};pendingScroll.current??=list.current?.scrollTop??0;setData(catalog);setLoaded(true);
+      }catch(error){if(!disposed&&libraryReads.current.accepts(token))throw error}
+    };
+    refreshLibrary.current=refresh;
+    const refreshQuietly=()=>{void refresh().catch(error=>setMessage(String(error)))};
     const attach=async()=>{
       try {
         const a=await listen<Wake>('wake',e=>{liveWindowEvent.current=true;setPanelVisible(true);changeTab(e.payload.tab);setWake(e.payload);if(typeof e.payload.targetBound==='boolean')setTargetBound(e.payload.targetBound);if(e.payload.warning)setMessage(e.payload.warning)});
@@ -103,9 +116,11 @@ export function App({library}:{library:boolean}) {
         if(disposed){esc();return}unlisten.push(esc);
         const b=await listen<Progress>('queue-progress',e=>{if(!disposed)acceptProgress(e.payload)});
         if(disposed){b();return}unlisten.push(b);
-        const [catalog,info]=await Promise.all([invoke<Library>('get_library'),invoke<typeof boot>('get_boot')]);
+        const changed=await listen('library-changed',refreshQuietly);if(disposed){changed();return}unlisten.push(changed);
+        window.addEventListener('focus',refreshQuietly);
+        const [,info]=await Promise.all([refresh(),invoke<typeof boot>('get_boot')]);
         if(!disposed){
-          setData(catalog);setBoot(info);setLoaded(true);
+          setBoot(info);
           if(!liveEscapeEvent.current){globalEscape.current=!!info.escapeRegistered;setEscapeError(info.escapeError??null)}
           // A delayed boot snapshot cannot overwrite an already handled wake,
           // rebind or explicit close. Pending wake only initializes a quiet UI.
@@ -116,7 +131,7 @@ export function App({library}:{library:boolean}) {
           if(info.platform!=='windows')setMessage('非 Windows 平台的系统粘贴尚未实现；当前仅预留跨平台界面边界。')
         }
       }catch(error){if(!disposed)setMessage(String(error))}
-    };void attach();return()=>{disposed=true;unlisten.forEach(fn=>fn())};
+    };void attach();return()=>{disposed=true;libraryReads.current.invalidate();unlisten.forEach(fn=>fn());window.removeEventListener('focus',refreshQuietly)};
   },[]);
   useEffect(()=>{
     if(!loaded||(!library&&(!wake||!panelVisible)))return;
@@ -138,10 +153,10 @@ export function App({library}:{library:boolean}) {
     const generation=++requestGeneration.current;
     readySequence.current++; // A pending wake rAF must not focus after paste starts.
     locked.current=true;activeRequest.current=null;pendingInteraction.current=false;earlyProgress.current.clear();setBusy(true);setQueueCaseId(kind==='queue'?record.id:null);setProgress(null);setMessage('正在准备粘贴请求…');
-    try{const id=await invoke<number>('paste',{caseId:record.id,kind,index:index??null,intervalMs:interval});
+    try{const id=await invoke<number>('paste',{caseId:record.id,kind,index:index??null,intervalMs:interval,expectedRevision:record.editRevision??0});
       if(generation===requestGeneration.current&&locked.current){activeRequest.current=id;const early=earlyProgress.current.get(id);earlyProgress.current.clear();if(early){acceptProgress(early)}else if(pendingInteraction.current){pendingInteraction.current=false;void run('panel_interaction',{requestId:id})}}
     }
-    catch(error){if(generation===requestGeneration.current){locked.current=false;activeRequest.current=null;pendingInteraction.current=false;setBusy(false);setMessage(String(error))}}
+    catch(error){if(generation===requestGeneration.current){locked.current=false;activeRequest.current=null;pendingInteraction.current=false;setBusy(false);if(String(error).includes('case_changed_refresh_and_retry')){setMessage('案例已更新，请待列表刷新后重新选择并重试');void refreshLibrary.current().catch(next=>setMessage(String(next)))}else setMessage(String(error))}}
   };
   const cancel=async()=>{await run('cancel_queue')};
   const dismiss=async()=>{await run(library?'close_library':'hide_panel')};
@@ -163,7 +178,7 @@ export function App({library}:{library:boolean}) {
     document.addEventListener('keydown',handle);document.addEventListener('keyup',release);
     return()=>{document.removeEventListener('keydown',handle);document.removeEventListener('keyup',release)};
   },[items,selected,interval,dict,library,targetBound]);
-  useEffect(()=>{list.current?.querySelector('[data-selected="true"]')?.scrollIntoView({block:'nearest'})},[selected]);
+  useEffect(()=>{if(skipSelectionScroll.current){skipSelectionScroll.current=false;return}list.current?.querySelector('[data-selected="true"]')?.scrollIntoView({block:'nearest'})},[selected]);
   const nav=<>{tabs.map(([id,name],i)=><button key={id} className={`${library?'navitem':'tab'} ${tab===id?'active':''}`} title={`Ctrl + Alt + ${i+1}`} onClick={()=>changeTab(id)}>{name}{library&&<span className="count">{data.cases.filter(r=>id==='all'||(id==='fav'?r.favorite:r.used>0)).length}</span>}</button>)}</>;
   const searchbox=<label className={library?'global-search':'search-wrap'}><span className="mag">⌕</span><input ref={search} value={query} onChange={e=>onSearchInput(e.target.value)} placeholder="搜索案例名称、提示词、项目、标签…" autoComplete="off" aria-label="搜索案例"/><button className="clear" title="清空关键词" onClick={()=>{setQuery('');search.current?.focus()}}>×</button></label>;
   const card=(r:Case,i:number)=>{
@@ -177,10 +192,7 @@ export function App({library}:{library:boolean}) {
   };
   const content=<div ref={list} className={library?'scrollarea':'list'}><div className={library?`gallery ${layout}`:''}>{items.length?items.map(card):<div className="none empty-results"><strong>{loaded?'没有找到匹配的案例':'等待加载资料库'}</strong><div>{loaded?'尝试减少关键词或切换至全部案例。':message||'由 Rust 读取 JSON manifest。'}</div></div>}</div></div>;
   return <WindowVisible.Provider value={library||panelVisible}><div onPointerDownCapture={interruptForPanelInteraction} onInputCapture={interruptForPanelInteraction} onKeyDownCapture={event=>{if(event.key!=='Escape')interruptForPanelInteraction()}} data-target-bound={targetBound} data-panel-visible={library||panelVisible} data-request-id={progress?.requestId} data-phase={progress?.phase} data-current-asset={progress?.currentAsset??undefined} data-event-timestamp={progress?.timestampMs} className={library?'library-root':'quick-root'}>
-    {library?<div id="app"><main className="workspace"><header className={`topbar ${boot.platform==='macos'?'mac-titlebar':''}`}><div className="brand" data-tauri-drag-region><span className="brandicon">✦</span>Prompt Shelf <span className="breadcrumb">/ 素材管理 / 4.3 PoC</span></div><div className="top-actions"><button className="btn primary sm" onClick={()=>setMessage('新建案例 · PoC 范围外')}>＋ 新建案例 · PoC</button><button className="btn sm" onClick={()=>setMessage('回收站 · PoC 范围外')}>回收站 · PoC</button><button className="btn sm" onClick={()=>setDict(true)}>搜索词典</button><button className="btn sm" onClick={()=>setMessage('备份与恢复 · PoC 范围外')}>备份与恢复 · PoC</button><span className="window-divider"/><div className="window-controls">{(['minimize','maximize','close'] as const).map((action,i)=><button key={action} className={`window-btn ${i===2?'window-close':''}`} aria-label={['最小化','最大化或还原','关闭并销毁主库'][i]} onClick={()=>void run(action==='close'?'close_library':'window_action',action==='close'?undefined:{action})}>{['─','□','×'][i]}</button>)}</div></div></header>
-    <div className="body"><aside className="rail"><div className="rail-inner"><div className="section-overline">我的素材</div>{nav}<div className="navdivider"/><button className={`navitem project-navigation ${catalog==='projects'?'active':''}`} onClick={()=>setCatalog(c=>c==='projects'?null:'projects')}>▧ 项目浏览</button><button className={`navitem tag-navigation ${catalog==='tags'?'active':''}`} onClick={()=>setCatalog(c=>c==='tags'?null:'tags')}>⌗ 标签浏览</button><div className="navdivider"/><div className="section-overline">快捷标签</div>{tags.slice(0,10).map(t=><button key={t} className={`taglink ${tag===t?'active':''}`} onClick={()=>setTag(tag===t?'':t)}><span className="dot"/>{t}</button>)}<p className="smallnote">代表性浏览 PoC<br/>项目与标签管理尚未实现</p></div></aside><div className="splitter"/>{catalog&&<><aside className="secondary"><div className="secondary-head"><div className="secondary-title">{catalog==='tags'?'标签':'项目'}浏览</div><p className="smallnote">只读 · 管理功能 PoC 范围外</p></div><div className="secondary-list"><div className="catalog-grid one-col">{(catalog==='tags'?tags:projects).map(value=><button key={value} className="catalog-item" onClick={()=>catalog==='tags'?setTag(tag===value?'':value):setProject(project===value?'':value)}><span className="catalog-name"><span className="catalog-text">{value}</span></span><small>{data.cases.filter(r=>catalog==='tags'?r.tags.includes(value):r.project===value).length}</small></button>)}</div></div></aside><div className="splitter"/></>}
-    <section className="library"><div className="libraryhead"><div className="headrow"><div className="heading-wrap"><div className="libtitle">{project||tag||'我的素材资料库'}</div><div className="libdesc">图文直览 · 只读浏览 · 主库关闭后销毁</div></div><div className="v410-toolbar"><div className="view-toggle">{['regular','masonry'].map((v,i)=><button key={v} className={layout===v?'active':''} onClick={()=>setLayout(v)}>{['常规','瀑布流'][i]}</button>)}</div><div className="sort-toggle">{['recent','name','new'].map((v,i)=><button key={v} className={sort===v?'active':''} onClick={()=>setSort(v)}>{['最近使用','按名称','最新创建'][i]}</button>)}</div></div></div><div className="searchrow">{searchbox}</div><div className="quick-filter-row"><div className="quickbar"><span className="qlabel">快捷标签</span>{['',...tags].map(t=><button key={t} className={`quicktag ${tag===t?'active':''}`} onClick={()=>setTag(t)}>{t||'全部'}</button>)}</div><button className="btn sm toolbar-clear" onClick={()=>{setQuery('');setTag('');setProject('')}}>清除筛选</button></div><div className="statsrow"><b>{items.length} 条案例</b><span>{data.assets.length} 张独立资源 · PoC</span></div></div>{content}</section></div></main><footer className="footline"><span>{escapeError||message||'主库为只读浏览 PoC · 粘贴请通过全局快捷面板调用'}</span><span title={boot.logPath}>{boot.platform||'等待平台'} · 日志 {boot.logPath||'待加载'}</span></footer></div>:
-    <section className="panel" aria-label="提示词快捷调用面板"><header className={`bar ${boot.platform==='macos'?'mac-titlebar':''}`}><span className="logo">✦</span><span className="brand" data-tauri-drag-region>Prompt Shelf</span><small>提示词速用 · PoC</small><span className="bar-end"><button className="library-link" onClick={()=>void run('open_library')}>打开主库</button><kbd>Ctrl + Alt + {tab==='recent'?2:tab==='fav'?3:1}</kbd><button className="x" aria-label="隐藏面板" onClick={()=>void dismiss()}>×</button></span></header><div className="controls">{searchbox}<div className="nav">{nav}<span className="line"/>{tags.slice(0,3).map(t=><button key={t} className={`category ${tag===t?'active':''}`} onClick={()=>setTag(tag===t?'':t)}>{t}</button>)}<span className="count">{matches.length>items.length?`前 ${items.length} / ${matches.length}`:items.length} 条</span></div></div>{content}<div className="queue-settings"><label>图间隔 <input type="number" min={100} max={10000} step={100} value={interval} disabled={busy} onChange={e=>setIntervalMs(Math.max(100,Math.min(10000,Number(e.target.value)||100)))}/> ms</label>{busy&&<button className="cancel-queue" onClick={()=>void cancel()}>Esc 停止</button>}<span title="外部输入框按 Ctrl+Alt+1/2/3 可重新绑定；搜索和点击面板不换目标">{targetBound?'目标已绑定':'未绑定目标'} · ↑↓ 选择 · Enter 全文</span></div><div className="legal" role="status" aria-live="polite">{busy&&<span className="paste-spinner" aria-hidden="true"/>}{escapeError||message||'点击提示词或图片粘贴至唤醒前目标 · 队列进度表示已触发指令，不代表目标已接收'}</div></section>}
+    <section className="panel" aria-label="提示词快捷调用面板"><header className={`bar ${boot.platform==='macos'?'mac-titlebar':''}`}><span className="logo">✦</span><span className="brand" data-tauri-drag-region>Prompt Shelf</span><small>提示词速用 · PoC</small><span className="bar-end"><button className="library-link" onClick={()=>void run('open_library')}>打开主库</button><kbd>Ctrl + Alt + {tab==='recent'?2:tab==='fav'?3:1}</kbd><button className="x" aria-label="隐藏面板" onClick={()=>void dismiss()}>×</button></span></header><div className="controls">{searchbox}<div className="nav">{nav}<span className="line"/>{tags.slice(0,3).map(t=><button key={t} className={`category ${tag===t?'active':''}`} onClick={()=>setTag(tag===t?'':t)}>{t}</button>)}<span className="count">{matches.length>items.length?`前 ${items.length} / ${matches.length}`:items.length} 条</span></div></div>{content}<div className="queue-settings"><label>图间隔 <input type="number" min={100} max={10000} step={100} value={interval} disabled={busy} onChange={e=>setIntervalMs(Math.max(100,Math.min(10000,Number(e.target.value)||100)))}/> ms</label>{busy&&<button className="cancel-queue" onClick={()=>void cancel()}>Esc 停止</button>}<span title="外部输入框按 Ctrl+Alt+1/2/3 可重新绑定；搜索和点击面板不换目标">{targetBound?'目标已绑定':'未绑定目标'} · ↑↓ 选择 · Enter 全文</span></div><div className="legal" role="status" aria-live="polite">{busy&&<span className="paste-spinner" aria-hidden="true"/>}{escapeError||message||'点击提示词或图片粘贴至唤醒前目标 · 队列进度表示已触发指令，不代表目标已接收'}</div></section>
     {dict&&<div className="demo-dialog" onClick={()=>setDict(false)}><section className="demo-dialog-panel" role="dialog" aria-modal="true" aria-label="搜索词典" onClick={e=>e.stopPropagation()}><h2>搜索词典</h2><p>多词 AND；标题权重高于提示词正文。同组词双向匹配。</p><div className="demo-dict">{dictionary.map(group=><div key={group[0]}>{group.join(' / ')}</div>)}</div><button className="btn" onClick={()=>setDict(false)}>关闭</button></section></div>}
   </div></WindowVisible.Provider>;
 }

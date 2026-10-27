@@ -1,0 +1,34 @@
+$ node --experimental-strip-types --test src/search.test.ts src/carousel.test.ts src/session.test.ts src/library/model.test.ts src/library/editor.test.ts
+✔ mixed image widths advance to actual boundaries and clamp the final step (0.6047ms)
+✔ empty and nonoverflowing rails have no movable direction (0.5397ms)
+✔ fractional boundaries avoid repeated tiny steps and expose only available edges (0.1197ms)
+✔ resize and filtered image counts restore a valid saved image boundary (0.0921ms)
+✔ nearest image and rapid requested steps preserve one-image navigation (0.1166ms)
+✔ late replacement follows stable reference id after a reorder, not the old index (1.0024ms)
+✔ removed slots, canceled editors and later sessions reject old image receipts (0.5916ms)
+✔ shared assets keep distinct occurrence ids and replacement does not collapse references (0.1486ms)
+✔ image paste detection leaves plain text paste and free comma tag input intact (0.2035ms)
+✔ first-read and focus refresh responses cannot overwrite a newer library change (0.1618ms)
+✔ quick refresh keeps the selected case id across insertions and safely clamps a removed selection (0.0971ms)
+✔ library dates sort by stored timestamps rather than UUID or call count (1.1634ms)
+✔ browse filtering is read only and unmarked catalog tags never become quick tags (0.2735ms)
+✔ explicit name and creation sorts take priority over search relevance (5.6652ms)
+✔ column thresholds and source URL policy follow the frozen view contract (0.1386ms)
+✔ AND spans fields and rejects absent terms (0.8366ms)
+✔ title ranks above body and project (0.1549ms)
+✔ dictionary is bidirectional and tabs filter (0.2476ms)
+✔ highlight preserves hostile HTML and regex query literally (0.3017ms)
+✔ same-collection wake preserves query, filters, selection and scroll (0.5063ms)
+✔ hotkey collections restore their own position without clearing search or filters (0.5785ms)
+✔ active Escape cancels and retains panel; active close always hides (0.1068ms)
+✔ early failure waits for request receipt while stale terminal cannot unlock a new call (0.092ms)
+✔ late nonterminal stages cannot replace the active cancel id or reopen a finished request (0.1151ms)
+✔ pending events are isolated by id and a terminal cannot be overwritten by an earlier stage (0.1104ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 25
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 234.4359

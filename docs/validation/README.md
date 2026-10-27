@@ -1,9 +1,12 @@
 # 公开验证证据
 
+- [B1 业务验证证据](b1-business/README.md)：SQLite/前端测试、最终构建及用户 Windows 业务清单与搜索框复测结果；分别说明自动化、静态检查和用户实测。
+
 本目录收录公开验证摘要。round5～round7 为历史证据副本；stage-a 为 4.4 本轮针对性验证。机器路径已脱敏；原始日志和私人截图留在本机。
 
 | 文件 | 来源及结论 |
 |---|---|
+| `b1-ui-results.json` | 既有前端19项、DTO定向1项、构建与CSS检查；Windows主要界面实测和用户视觉验收，明确自动化未覆盖项。原始截图/日志仅留本机 |
 | `stage-a-results.json` | Rust harness 47、前端 15 通过及两个 release 构建；100/500 离线导入/重开/拒绝重导通过。悬空链接分支因权限未实测，GUI 接入冒烟待人工验收 |
 | `round5-independent-results.json` | 独立复核汇总；Rust 27 项、前端 15 项通过 |
 | `round6-rust-tests.txt`、`round6-results.json` | 主控补测 Rust 32 项、前端 15 项及构建通过；独立验证仅完成局部静态审查 |

@@ -1,6 +1,6 @@
-# Prompt Shelf · 4.4 阶段 A
+# Prompt Shelf · 4.4 B1 案例保存
 
-沿用 Tauri 2 + Rust + React/TypeScript 工程，本阶段只实现本地数据与资产底座。快捷面板、只读主库从 SQLite 兼容 DTO 读取；不实现 B–F 的编辑、草稿业务、回收站或备份。窗口几何、样式、轮播、粘贴、焦点、队列和 Esc 语义保留。
+沿用 Tauri 2 + Rust + React/TypeScript、阶段 A 底座和已验收 B1 UI。本轮完成案例内联编辑、图片操作、手动保存/取消和双窗刷新；不实现 B2 自动草稿/异常恢复/完整关闭拦截，也不扩展 C–F。
 
 ## 构建与验证
 
@@ -11,13 +11,13 @@ cd poc
 pnpm install --frozen-lockfile
 pnpm test
 pnpm build
-$env:CARGO_TARGET_DIR = Join-Path $PWD 'src-tauri/target-stage-a'
+$env:CARGO_TARGET_DIR = Join-Path $PWD 'src-tauri/target-stage-b1-business'
 cargo test --manifest-path src-tauri/Cargo.toml --locked
 pnpm tauri build --no-bundle -- --locked
 cargo build --manifest-path src-tauri/Cargo.toml --release --bin prompt-shelf-store --locked
 ```
 
-两个 exe 位于 target-stage-a/release/：prompt-shelf-poc.exe（主程序，文件名保留）、prompt-shelf-store.exe（离线工具）。旧 round7 等目录不覆盖。reports/stage-a/ 留测试、构建与哈希；编译/Mock 验证不代替真实目标接收和 Windows UI 手测。
+两个 exe 位于 target-stage-b1-business/release/：prompt-shelf-poc.exe（主程序，文件名保留）、prompt-shelf-store.exe（离线工具）。旧阶段 A、round7 等目录不覆盖。reports/b1-business/ 留本机测试、构建与哈希；编译/Mock 验证不代替真实目标接收和 Windows UI 手测。
 
 ## 数据目录与启动
 
@@ -26,7 +26,7 @@ cargo build --manifest-path src-tauri/Cargo.toml --release --bin prompt-shelf-st
 GUI 仅支持可选 --data-dir <directory>，测试/开发指定独立目录：
 
 ```powershell
-& './src-tauri/target-stage-a/release/prompt-shelf-poc.exe' --data-dir 'D:/PromptShelf-test/library-a'
+& './src-tauri/target-stage-b1-business/release/prompt-shelf-poc.exe' --data-dir 'D:/PromptShelf-test/library-a'
 ```
 
 主程序先初始化官方 single-instance 插件，再运行其他插件和 setup。重复启动不执行导入、数据打开、热键注册或目标改绑。单库单连接受 Mutex<Connection> 保护，SQL/文件工作在 blocking worker 中进行。Store 全生命周期持有 .library.lock 的 OS 锁，离线工具与 GUI、两个离线工具不能同时打开同一目录；进程退出由 OS 释放，不删除锁文件。
@@ -48,9 +48,9 @@ GUI 仅支持可选 --data-dir <directory>，测试/开发指定独立目录：
 prompt-shelf-store 是独立 console binary，无 Tauri Builder、窗口、托盘、热键或系统输入。必须提供 --data-dir，可附 --import-manifest <path> 和 --check。每次成功均执行完整性/外键/原图哈希检查，输出一行 JSON；失败非零退出。
 
 ```powershell
-& './src-tauri/target-stage-a/release/prompt-shelf-store.exe' --data-dir 'D:/PromptShelf-test/library-a' --import-manifest '../fixtures/100x500/manifest.json' --check
+& './src-tauri/target-stage-b1-business/release/prompt-shelf-store.exe' --data-dir 'D:/PromptShelf-test/library-a' --import-manifest '../fixtures/100x500/manifest.json' --check
 # 导入进程退出后，以另一进程重开
-& './src-tauri/target-stage-a/release/prompt-shelf-store.exe' --data-dir 'D:/PromptShelf-test/library-a' --check
+& './src-tauri/target-stage-b1-business/release/prompt-shelf-store.exe' --data-dir 'D:/PromptShelf-test/library-a' --check
 ```
 
 先关闭持有同目录的程序；CLI 仍检测占用并拒绝打开。导入只允许空库，使用原 schema-v1 fixture 格式；original/thumb 必须是 manifest 根内存在的相对文件且互不混用。旧 thumb 只作兼容输入验证，正式缩略图从新保存原图重建。旧 ID 映射为新 UUID；同 hash 一资产/一原图，同案多位置、效果图/参考图与跨案共享保留为独立引用行。
@@ -67,7 +67,7 @@ PNG/JPEG/WebP；单源文件上限 512 MiB，解码宽高各上限 32768、分�
 
 在目标输入框按 Ctrl+Alt+1/2/3 呼出；Enter/文字、单图、参考图队列仍使用原请求保护。面板粘贴后可见置顶、目标持焦，搜索/筛选和轨道位置保留。活动 Esc 仅取消，释放后闲时 Esc 收起并注销；隐藏后不持有全局 Esc。done/total 只表示已触发，不代表目标收到或上传完成。
 
-A 的接入冒烟覆盖正式库快照到既有文本/图片准备，不发送系统粘贴。真实目标、GUI 重复启动、实际 DPI 与高分辨率/真实 ICC 素材仍需人工检查。主库仍只读，收藏、最近使用等业务在后续阶段接入。
+A 的接入冒烟覆盖正式库快照到既有文本/图片准备，不发送系统粘贴。真实目标、GUI 重复启动、实际 DPI 与高分辨率/真实 ICC 素材仍需人工检查。主库已接手动保存；收藏、最近使用等业务仍留后续阶段。
 
 ## 目录与依赖
 
@@ -86,3 +86,19 @@ reports/stage-a/                 本阶段证据
 ```
 
 新增依赖：rusqlite 0.41.0（bundled/backup，MIT）、libsqlite3-sys 0.39.1 自带 SQLite 3.54.1（public domain）；官方 tauri-plugin-single-instance 2.5.4（MIT/Apache-2.0）、tempfile 3.27.0（MIT/Apache-2.0），UUID 复用锁定的 1.x（MIT/Apache-2.0）。已有 image、sha2、Serde 等继续使用，实际版本见锁文件和 CLI sqliteVersion。官方依据：[单实例](https://v2.tauri.app/plugin/single-instance/)、[SQLite 版本](https://www.sqlite.org/changes.html)、[rusqlite](https://docs.rs/rusqlite/)。
+
+## B1 业务范围与使用
+
+新建案例或点击铅笔，在原卡片内编辑标题、项目自由输入、逗号标签、完整正文和来源。项目支持既有名称提示；保存时按 name_key 复用或登记分类，取消不登记。来源失焦/保存规范化域名为 HTTPS，Rust 只接受 HTTP/S；来源图标经受控 Windows Shell 打开默认浏览器。
+
+图片可用文件选择、系统文件拖放或 Ctrl+V 导入。选中效果图/参考图后精准替换，未选中默认追加；单槽替换仅一张，追加可多张。拖动参考图调整顺序，移除仅删编辑态引用。导入或重排后恢复默认追加。文本剪贴板正常交给输入框，图片读取/解码在 Rust；无活动编辑不新增案例。原始 PNG/文件字节复用不可变资产存储，DIB 只有位图表示时编码 PNG。
+
+点击保存才一次 SQLite 事务提交字段、分类和图片关系，base_revision 冲突或失败保留输入。新建未保存不进快捷面板，已有案例编辑时快捷面板读取旧正式版本。取消不写回旧数组，不物理删图片；取消/失败的未引用完整资产保守留存，无 GC。保存不改 use_count、last_used_at 或收藏。
+
+保存后 library-changed 通知两窗口重读；监听先于首次读取，序号拒绝迟到响应，重新聚焦也从 SQLite 补拉。快捷面板按稳定案例 ID 保留选中/浏览位置；调用携带显示的 editRevision，保存重排后旧版本请求会被拒绝并刷新，避免旧下标指向新图片。queue/escape/平台输出链路保留。
+
+B1 只显示“未正式保存”，没有自动草稿承诺。编辑期间切换会丢失卡片的搜索/筛选或另开编辑，会提示先保存/取消；完整窗口关闭、托盘退出和异常中断保护在 B2，关闭仍会丢失未保存输入。不要把本阶段当作完整编辑安全交付。
+
+当前产物目录为 src-tauri/target-stage-b1-business，GUI/CLI 参数沿用 --data-dir、--import-manifest、--check。复现：pnpm test；pnpm build；node scripts/check-ui-build.mjs b1-business；报告在 reports/b1-business/。新增官方 dialog 2.8.3（MIT/Apache-2.0），用于 Rust 原生文件选择；image 增启 BMP，仅用于剪贴板 DIB 转换，没有新 UI 框架。
+
+2026-10-27 用户确认独立测试库 B1 业务清单 1～8 全部通过，并完成搜索框样式复测。自动化、构建与用户实测分别见 [公开证据](../docs/validation/b1-business/README.md)。交付停在 B1，不进入 B2。

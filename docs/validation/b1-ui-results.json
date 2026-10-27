@@ -1,0 +1,58 @@
+{
+  "stage": "4.4 B1 UI only",
+  "date": "2026-10-25",
+  "evidencePolicy": "Summary of existing records; no tests rerun for Git publication. Raw logs and screenshots remain local.",
+  "stageABaseline": "b349f6136c85d0e3611a026679f956b86305668a",
+  "automated": {
+    "frontend": {"passed": 19, "source": "poc/reports/b1-ui/frontend-tests.txt"},
+    "readonlyDto": {"passed": 1, "source": "poc/reports/b1-ui/readonly-dto-test.txt"},
+    "typescriptVite": "PASS",
+    "packagedCssBranchIsolation": "PASS",
+    "windowsGuiRelease": "PASS",
+    "windowsCliRelease": "PASS",
+    "fullRustSuite": "NOT_RERUN_UI_SCOPE",
+    "source": "poc/reports/b1-ui/build.json"
+  },
+  "build": {
+    "revision": "4.4-b1-ui",
+    "guiSha256": "f4b7bdfc7d0983616df54d6c2900f27142b62019425ee68ab833d033000dcb8f",
+    "cliSha256": "87efa143828bb600e13f0275b679dea25a0e2c58740981557d65ec8cb0f48d9d",
+    "note": "Existing locally tested binaries, not distributed in this commit. Documentation-only publication updates do not constitute a new build."
+  },
+  "windowsActualUi": {
+    "fixture": {"cases": 100, "assets": 500, "quickTags": 6},
+    "observed": [
+      "Normal library rendering at 1360x860 content size",
+      "Maximize and restore with responsive column count",
+      "Project and tag panels; project single/double columns; project filtering",
+      "Main search empty result and clearing filters",
+      "Regular and masonry switching",
+      "Reference image navigation and both in-page splitters",
+      "560-wide quick panel rendering, library opening, Escape hiding quick panel"
+    ],
+    "automationLimitations": [
+      "Native title-bar movement and window narrowing: automated attempts unsuccessful; subsequently passed user manual testing",
+      "Pixel-by-pixel comparison against browser-rendered prototype: local file navigation blocked by tool policy",
+      "Separate catalog-search UI test",
+      "Cross-application paste regression: not rerun by agent; subsequently passed user manual testing"
+    ],
+    "source": "evidence/b1-ui/windows-visual/ and evidence/b1-ui/manual-synthetic/logs/poc.jsonl"
+  },
+  "userVisualAcceptance": {
+    "status": "PASS",
+    "date": "2026-10-25",
+    "statement": "B1 正式主库 UI 已通过用户视觉验收。",
+    "scope": "User visual acceptance; does not convert untested automation cases into passed tests."
+  },
+  "userManualRegressionAcceptance": {
+    "date": "2026-10-25",
+    "source": "Explicit user report in project conversation; no new logs or per-application details supplied",
+    "statement": "窗口原生拖动、窄窗口适配和跨程序粘贴回归均已通过，我已测试",
+    "nativeWindowDragging": "PASS",
+    "narrowWindowLayout": "PASS",
+    "crossApplicationPasteRegression": "PASS",
+    "method": "User Windows manual testing; not an automated test result"
+  },
+  "notImplemented": ["Case create/edit/save business", "Automatic drafts", "Recycle bin business", "Backup and restore business"],
+  "nextStep": "Await separate authorization; no further B1 business development or B2 in this delivery."
+}

@@ -1,12 +1,13 @@
 # Prompt Shelf
 
-Windows 优先的图文提示词快捷调用工具技术原型，采用 **Tauri 2 + Rust + React/TypeScript**。
+Windows 优先的图文提示词管理与快捷调用桌面工具，采用 **Tauri 2 + Rust + React/TypeScript**。
 
-**已发布基线 v0.1.0：4.3 Windows PoC；当前工作区：4.4 阶段 A 数据与资产底座。** 本轮只接入 SQLite、共享原图、缩略图和单实例，主库仍为只读 UI，不进入 B1。macOS 仅预留适配接口，未实现系统粘贴。
+**已发布基线 v0.1.0：4.3 Windows PoC；开发分支 `dev/4.4-b1-ui` 已提交阶段 A 与 B1 主库 UI。** B1 新建、编辑、图片管理、手动保存、双窗同步及重启测试已于 2026-10-27 获用户验收，业务成果作为独立提交交付同一开发分支。见 [B1 业务交付记录](docs/public/b1-business-delivery.md)。不进入 B2；macOS 仅预留适配接口，未实现系统粘贴。
 
 ## 审查入口
 
 - [4.4 架构与实施计划](Prompt%20Shelf%204.4%20正式开发架构与实施计划.md)、[阶段 A 交付说明](docs/public/stage-a-delivery.md)。
+- [B1 主库 UI 交付与视觉验收状态](docs/public/b1-ui-delivery.md)、[公开验证摘要](docs/validation/b1-ui-results.json)。阶段 A 回退点：独立提交 `b349f61`，标签 `baseline-stage-a`；B1 UI 为其后独立提交，main 保持 v0.1.0。
 - [技术验收与交接报告](docs/public/technical-handoff.md)：验收结果、模块职责、证据边界、遗留风险。
 - [测试证据说明](docs/validation/README.md)：已公开测试日志与未验证项。
 - [任务书](Prompt%20Shelf%204.2%C2%B7v2.0/PromptShelf_4.2_Tauri单主线技术选型与PoC任务书_v2.0.md)及 [V4.11 定稿原型](Prompt%20Shelf%204.2%C2%B7v2.0/demos/01_V4.11_素材管理UI冻结基线.html)。早期快捷面板样机仅供历史参考，冲突时以定稿与当前已确认交互为准。
@@ -22,29 +23,27 @@ Windows 优先的图文提示词快捷调用工具技术原型，采用 **Tauri 
 - 560 默认宽度、圆形半透明图片翻页按钮；主库按需创建及销毁。
 - 100 案例/500 图片合成样本生成、搜索与窗口响应埋点、资源采样工具。
 
-阶段 A 已接入 SQLite 数据读取与显式离线样本导入。正式素材 CRUD UI、自动草稿、回收站、备份和安装升级仍留在后续阶段。目标软件可能选择不同剪贴板格式或转码；进度代表已派发，不代表上传完成。完整逐应用兼容性矩阵、资源基线及性能阈值仍缺专项记录。
+阶段 A 已接入 SQLite 数据读取与显式离线样本导入。本地 B1 已实现新建、编辑、手动保存及图片基础管理；自动草稿、完整关闭保护、回收站、备份和安装升级仍留在后续阶段。目标软件可能选择不同剪贴板格式或转码；进度代表已派发，不代表上传完成。完整逐应用兼容性矩阵、资源基线及性能阈值仍缺专项记录。
 
 ## 本地构建与启动（Windows）
 
 需要 Windows、WebView2、Rust MSVC、Visual Studio C++ Build Tools、Node.js（支持 `--experimental-strip-types`）、pnpm；生成样本另需 Python 与 Pillow。依赖版本以两个 lockfile 为准。
 
 ```powershell
-git clone https://github.com/jianan757-gif/Prompt-Shelf.git
+git clone --branch dev/4.4-b1-ui https://github.com/tangchiji/Prompt-Shelf.git
 cd Prompt-Shelf
-python -m pip install Pillow
-python scripts/generate-fixtures.py
 cd poc
 pnpm install --frozen-lockfile
-$env:CARGO_TARGET_DIR = Join-Path (Get-Location) 'src-tauri\target-stage-a'
+$env:CARGO_TARGET_DIR = Join-Path (Get-Location) 'src-tauri\target-stage-b1-business'
 pnpm tauri build --no-bundle -- --locked
 cargo build --manifest-path src-tauri/Cargo.toml --release --bin prompt-shelf-store --locked
 cd ..
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\start-stage-a.ps1" -Fixture synthetic
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\start-b1-business.ps1" -Fixture empty
 ```
 
-样本生成器拒绝覆盖已有 `fixtures/100x500`。ExecutionPolicy Bypass 仅用于该 PowerShell 进程。构建输出在 `poc/src-tauri/target-stage-a/release/`，不生成安装器。上述脚本将合成样本显式导入 `evidence/stage-a/manual-synthetic`，重启继续读取同一 SQLite 库，不覆盖旧 PoC；若需验证空库改用 `-Fixture empty`（表示不导入样本，不会清空已有数据）。
+样本生成器拒绝覆盖已有 `fixtures/100x500`。ExecutionPolicy Bypass 仅用于该 PowerShell 进程。当前构建输出在 `poc/src-tauri/target-stage-b1-business/release/`，不生成安装器。上述脚本使用 `evidence/b1-business/manual-empty`，首次为空库，重启继续读取同一 SQLite 库；`empty` 表示不导入样本，不会清空已有数据。需要合成样本时，先安装 Pillow 并运行 `python scripts/generate-fixtures.py`，再用 `-Fixture synthetic` 启动。旧阶段 A 程序与 `start-stage-a.ps1` 保留。
 
-首次启动默认隐藏：在专用目标输入框内按 Ctrl+Alt+1 呼出面板，点击提示词或图片。更换目标时先点新目标输入框，再按热键重新绑定。托盘可打开主库或退出；启动脚本拒绝同时运行同项目多版本。私人混合样本不随仓库提供，请先使用 synthetic。
+首次启动默认隐藏：在专用目标输入框内按 Ctrl+Alt+1 呼出面板，点击提示词或图片。更换目标时先点新目标输入框，再按热键重新绑定。托盘可打开主库或退出；启动脚本拒绝同时运行同项目多版本。私人混合样本不随仓库提供，请使用 empty 自建测试案例或 synthetic 合成样本。
 
 ## 数据目录与离线工具
 
@@ -53,14 +52,14 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\start-stage-a
 无需启动 GUI 即可验证持久数据：
 
 ```powershell
-.\poc\src-tauri\target-stage-a\release\prompt-shelf-store.exe --data-dir .\evidence\stage-a\offline-library --import-manifest .\fixtures\100x500\manifest.json --check
-.\poc\src-tauri\target-stage-a\release\prompt-shelf-store.exe --data-dir .\evidence\stage-a\offline-library --check
+.\poc\src-tauri\target-stage-b1-business\release\prompt-shelf-store.exe --data-dir .\evidence\b1-business\offline-library --import-manifest .\fixtures\100x500\manifest.json --check
+.\poc\src-tauri\target-stage-b1-business\release\prompt-shelf-store.exe --data-dir .\evidence\b1-business\offline-library --check
 ```
 
 导入仅允许空库。重复导入非空库会拒绝，不会合并或覆盖；离线工具与 GUI 不能同时占用同一数据目录。源图片只读复制，原图按 SHA-256 共享，缩略图独立生成并按文件授权。旧 `scripts/start-poc.ps1` 仅供本地保留的 round7 历史程序使用。
 ## 验证命令
 
-供需要复现的审查者使用；本轮只运行阶段 A 相关测试和必要回归，不重复完整 PoC。
+供需要复现的审查者使用；本轮复用既有证据并完成 B1 定向验证，不重复完整 PoC。
 
 ```powershell
 cd poc

@@ -1,0 +1,94 @@
+   Compiling prompt-shelf-poc v0.1.0 (<workspace>\poc\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.76s
+     Running unittests src\lib.rs (poc\src-tauri\target-stage-b1-business\debug\deps\prompt_shelf_poc-baa7045bd5adb6f3.exe)
+
+running 24 tests
+test data::tests::aliases_match_controller_schema ... ok
+test clipboard_input::tests::clipboard_png_padding_is_not_saved_as_image_data ... ok
+test cases::tests::source_normalization_uses_http_https_and_idn ... ok
+test clipboard_input::tests::clipboard_dib_converts_without_clipboard_or_system_input ... ok
+test data::tests::no_absolute_or_traversal ... ok
+test paths::tests::local_files_allow_new_files_and_reject_dangling_links_when_supported ... ok
+test store::tests::future_or_unversioned_database_is_not_overwritten_and_failed_migration_rolls_back ... ok
+test store::tests::empty_library_reopens_and_configuration_is_explicit ... ok
+test cases::tests::memory_sessions_do_not_revive_after_cancel_or_close_and_errors_keep_editing ... ok
+test store::tests::paths_reject_absolute_traversal_cache_original_and_bad_hash ... ok
+test cases::tests::new_save_catalogs_cancel_and_reopen_are_transactional ... ok
+test store::tests::jpeg_exif_orientation_and_icc_are_preserved_in_independent_preview ... ok
+test cases::tests::missing_original_or_unknown_asset_never_saves_formal_case ... ok
+test store::tests::store_lifetime_lock_excludes_second_owner_and_releases_on_drop ... ok
+test cases::tests::sql_failure_after_field_catalog_and_relation_changes_rolls_everything_back ... ok
+test cases::tests::stale_save_and_stale_quick_index_are_rejected_without_changing_usage ... ok
+test cases::tests::shared_images_reference_ids_and_reorder_preserve_other_case_and_originals ... ok
+test store::tests::failed_sql_batch_rolls_back_after_ready_files_and_prior_case_inserts ... ok
+test store::tests::foreign_keys_results_and_draft_protection_enforced_by_sqlite ... ok
+test store::tests::failed_image_batch_never_commits_partial_cases_or_assets ... ok
+test store::tests::readonly_projection_exposes_existing_dates_source_and_catalog_state ... ok
+test store::tests::shared_original_references_uuid_dtos_and_reopen_are_lossless ... ok
+test store::tests::missing_or_corrupt_thumbnails_rebuild_only_from_matching_original ... ok
+test data::tests::controller_fixtures_load_100_cases_500_assets_and_hashes ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.04s
+
+     Running unittests src\main.rs (poc\src-tauri\target-stage-b1-business\debug\deps\prompt_shelf_poc-89b34ed843601f27.exe)
+
+running 30 tests
+test escape::tests::job_completion_does_not_release_visible_session_escape ... ok
+test escape::tests::one_held_escape_cancels_without_later_hiding_idle_panel ... ok
+test escape::tests::repeated_wake_does_not_reset_a_held_cancel_press ... ok
+test escape::tests::registration_failure_is_explicit_and_local_fallback_is_one_press ... ok
+test escape::tests::unregister_failure_cannot_mark_panel_hidden_or_release_ownership ... ok
+test platform::windows::tests::only_attached_quick_panel_preserves_target ... ok
+test platform::windows::tests::only_exact_quick_or_external_target_can_transition ... ok
+test platform::windows::tests::dib_headers_alpha_and_bottom_up ... ok
+test platform::windows::tests::text_is_full_utf16_with_terminator ... ok
+test platform::windows::tests::activation_pending_accepts_only_panel_null_or_original_target ... ok
+test queue::tests::single_guard_all_request_kinds_until_release ... ok
+test queue::tests::cancel_on_write_boundary_no_dispatch ... ok
+test queue::tests::focus_switched_at_restore_event_never_restores_or_sends ... ok
+test queue::tests::focus_switched_does_not_restore_again ... ok
+test queue::tests::restored_native_refocus_cancels_but_initial_activation_notification_does_not ... ok
+test queue::tests::closed_during_wait_stops_remainder ... ok
+test queue::tests::panel_refocus_after_send_stops_queue_without_restoring_again ... ok
+test queue::tests::six_in_order_one_restore_and_truthful_done ... ok
+test queue::tests::refusal_closed_clipboard_and_prepare_never_send ... ok
+test wake_policy_tests::capture_errors_only_preserve_exact_quick_panel ... ok
+test platform::windows::tests::png_original_bytes_and_persistent_hdrop ... ok
+test queue::tests::concurrent_cancel_is_linearized_with_dispatch ... ok
+test queue::tests::third_party_during_activation_wait_rejects_without_retry ... ok
+test queue::tests::cancel_during_prepare_waits_worker_and_no_send ... ok
+test queue::tests::cancellation_during_activation_wait_is_prompt_and_never_sends ... ok
+test queue::tests::cancel_second_send_stops_remainder ... ok
+test wake_policy_tests::sqlite_snapshot_feeds_existing_text_and_original_image_preparation ... ok
+test queue::tests::third_party_during_first_preparation_never_activates_or_sends ... ok
+test queue::tests::visible_panel_continuous_calls_keep_target_and_do_not_refocus_panel ... ok
+test queue::tests::activation_timeout_never_hides_writes_or_retries ... ok
+
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+
+     Running unittests src\bin\prompt-shelf-store.rs (poc\src-tauri\target-stage-b1-business\debug\deps\prompt_shelf_store-067804f66b30ba41.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\offline_process.rs (poc\src-tauri\target-stage-b1-business\debug\deps\offline_process-6ebad1ef52222093.exe)
+
+running 2 tests
+test offline_cli_requires_explicit_directory_before_any_data_access ... ok
+test offline_real_process_import_exit_reopen_and_in_use_guard ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests\scope_refresh.rs (poc\src-tauri\target-stage-b1-business\debug\deps\scope_refresh-da05da0841033653.exe)
+
+running 1 test
+test incremental_import_deduplicates_and_refresh_scope_grants_only_thumbnails ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+   Doc-tests prompt_shelf_poc
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
