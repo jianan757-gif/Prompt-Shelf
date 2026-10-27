@@ -2,6 +2,8 @@
 mod escape;
 mod platform;
 mod queue;
+mod editing;
+use editing::{begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url};
 use prompt_shelf_poc::{data,paths::DataPaths,store::Store,scope::authorize_thumbnails};
 use platform::{NativePlatform, PasteItem, PastePlatform};
 use std::{
@@ -21,13 +23,15 @@ use tauri::{
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 type Target = <NativePlatform as PastePlatform>::Target;
-const BUILD_REVISION: &str = "4.4-b1-ui";
+const BUILD_REVISION: &str = "4.4-b1-business";
 struct Runtime {
     platform: Arc<NativePlatform>,
     queue: Arc<queue::Queue>,
     escape: Mutex<escape::EscapeSession>,
     target: Mutex<Option<Target>>,
     store: Arc<Store>,
+    edits: Arc<prompt_shelf_poc::cases::EditSessions>,
+    library_revision: AtomicU64,
     log: Mutex<std::fs::File>,
     log_path: PathBuf,
     token: AtomicU64,
@@ -171,7 +175,7 @@ fn get_boot(window: tauri::WebviewWindow, state: tauri::State<Runtime>) -> serde
         None
     };
     let session = state.escape.lock().unwrap();
-    serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-b1-ui","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"escapeRegistered":session.registered,"escapeError":session.error})
+    serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-b1-business","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"libraryRevision":state.library_revision.load(Ordering::Acquire),"generation":1,"escapeRegistered":session.registered,"escapeError":session.error})
 }
 #[tauri::command]
 async fn search_ready(
@@ -320,6 +324,7 @@ async fn paste(
     kind: String,
     index: Option<usize>,
     interval_ms: u64,
+    expected_revision: u64,
 ) -> Result<u64, String> {
     if window.label() != "quick_panel" {
         return Err("paste_only_from_quick_panel".into());
@@ -339,7 +344,7 @@ async fn paste(
     let ticket=state.queue.reserve()?;
     let store=state.store.clone();let lookup_id=case_id.clone();let lookup_kind=kind.clone();
     let prepared=tauri::async_runtime::spawn_blocking(move||{
-        let library=store.case_snapshot(&lookup_id)?;
+        let library=store.case_snapshot_at_revision(&lookup_id,expected_revision)?;
         paste_items(&library,&lookup_id,&lookup_kind,index)
     }).await.map_err(|e|e.to_string()).and_then(|result|result);
     let items=match prepared {Ok(items)=>items,Err(error)=>{state.queue.release();return Err(error)}};
@@ -414,7 +419,8 @@ fn main() {
             if event.state()!=ShortcutState::Pressed{return;}
             for (code,tab) in [(Code::Digit1,"all"),(Code::Digit2,"recent"),(Code::Digit3,"fav")]{if shortcut.matches(Modifiers::CONTROL|Modifiers::ALT,code){wake(app,tab,true);return;}}
         }).build())
-        .invoke_handler(tauri::generate_handler![get_library,get_boot,ready,search_ready,hide_panel,panel_escape,cancel_queue,panel_interaction,open_library,close_library,window_action,paste])
+        .plugin(tauri_plugin_dialog::init())
+        .invoke_handler(tauri::generate_handler![get_library,get_boot,ready,search_ready,hide_panel,panel_escape,cancel_queue,panel_interaction,open_library,close_library,window_action,paste,begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url])
         .setup(|app|{
             let mut arguments=std::env::args_os().skip(1);let mut override_directory=None;
             while let Some(argument)=arguments.next(){
@@ -432,7 +438,7 @@ fn main() {
             let platform=Arc::new(NativePlatform::default());
             #[cfg(target_os="windows")]
             if let Some(window)=app.get_webview_window("quick_panel"){platform.attach_window(&window)?;}
-            let runtime=Runtime{platform,queue:Arc::new(queue::Queue::default()),escape:Mutex::new(escape::EscapeSession::default()),target:Mutex::new(None),store,log:Mutex::new(log),log_path,token:AtomicU64::new(1),wake:Mutex::new(None),library_start:Mutex::new(None),library_creating:Mutex::new(false),tray_status:Mutex::new(None)};
+            let runtime=Runtime{platform,queue:Arc::new(queue::Queue::default()),escape:Mutex::new(escape::EscapeSession::default()),target:Mutex::new(None),store,edits:Arc::new(prompt_shelf_poc::cases::EditSessions::default()),library_revision:AtomicU64::new(0),log:Mutex::new(log),log_path,token:AtomicU64::new(1),wake:Mutex::new(None),library_start:Mutex::new(None),library_creating:Mutex::new(false),tray_status:Mutex::new(None)};
             runtime.log("startup",serde_json::json!({"cases":case_count,"assets":asset_count,"exe":std::env::current_exe().ok(),"revision":BUILD_REVISION,"platform":std::env::consts::OS,"resourceThreshold":"baseline_only_not_approved"}));
             app.manage(runtime);
             let quick=MenuItem::with_id(app,"quick","快捷面板 · Ctrl+Alt+1",true,None::<&str>)?;
@@ -450,7 +456,7 @@ fn main() {
         .on_window_event(|window,event|{
             if let tauri::WindowEvent::Focused(true)=event{if window.label()=="quick_panel"{if let Some(state)=window.try_state::<Runtime>(){if state.platform.panel_is_foreground()&&state.queue.cancel_panel_refocus(){state.log("panel_refocused",serde_json::json!({"action":"cancel_request_no_refocus_target"}));}}}}
             if let tauri::WindowEvent::CloseRequested{api,..}=event{if window.label()=="quick_panel"{api.prevent_close();let _=close_panel(window.app_handle());}}
-            if let tauri::WindowEvent::Destroyed=event{if window.label()=="library_manager"{let state=window.state::<Runtime>();*state.library_creating.lock().unwrap()=false;state.log("library_window_destroyed",serde_json::json!({}));}}
+            if let tauri::WindowEvent::Destroyed=event{if window.label()=="library_manager"{let state=window.state::<Runtime>();*state.library_creating.lock().unwrap()=false;state.edits.clear();state.log("library_window_destroyed",serde_json::json!({}));}}
         })
         .run(tauri::generate_context!()).expect("PoC startup failed: check hotkey conflicts and manifest paths");
 }

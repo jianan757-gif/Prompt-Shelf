@@ -1,6 +1,7 @@
 import {createContext,useContext,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import {invoke,convertFileSrc,isTauri} from '@tauri-apps/api/core';
 import {listen} from '@tauri-apps/api/event';
+import {LatestRead,selectionAfterRefresh} from './refresh';
 import {dictionary,filterCases,highlightParts} from './search';
 import {ReferenceCarousel} from './ReferenceCarousel';
 import {progressRouting,rememberProgress,terminalPhase as terminal,wakeView} from './session';
@@ -35,6 +36,8 @@ export function App({library}:{library:boolean}) {
   const [busy,setBusy]=useState(false);const locked=useRef(false);const [message,setMessage]=useState('');const [dict,setDict]=useState(false);
   const activeRequest=useRef<number|null>(null);const pendingInteraction=useRef(false);const requestGeneration=useRef(0);
   const earlyProgress=useRef(new Map<number,Progress>());
+  const libraryReads=useRef(new LatestRead());const refreshLibrary=useRef<()=>Promise<void>>(async()=>{});
+  const pendingSelection=useRef<{id:string|null;index:number}|null>(null);const skipSelectionScroll=useRef(false);
   const liveWindowEvent=useRef(false);
   const globalEscape=useRef(false);const liveEscapeEvent=useRef(false);const [escapeError,setEscapeError]=useState<string|null>(null);
   const [queueCaseId,setQueueCaseId]=useState<string|null>(null);
@@ -49,6 +52,8 @@ export function App({library}:{library:boolean}) {
   const assets=useMemo(()=>new Map(data.assets.map(a=>[a.id,a])),[data.assets]);
   const matches=useMemo(()=>filterCases(data.cases,query,tab,tag,project,sort),[data,query,tab,tag,project,sort]);
   const items=useMemo(()=>library?matches:matches.slice(0,50),[library,matches]);
+  const latestItems=useRef<Case[]>([]);latestItems.current=items;
+  useLayoutEffect(()=>{const snapshot=pendingSelection.current;if(!snapshot)return;pendingSelection.current=null;const next=selectionAfterRefresh(items.map(record=>record.id),snapshot.id,snapshot.index);if(next!==sessionView.current.selected){skipSelectionScroll.current=true;setSelected(next)}},[items]);
   const tags=useMemo(()=>[...new Set(data.cases.flatMap(c=>c.tags))],[data]);
   const projects=useMemo(()=>[...new Set(data.cases.map(c=>c.project).filter(Boolean))],[data]);
   const run=async(command:string,args?:Record<string,unknown>)=>{try{return await invoke(command,args)}catch(e){setMessage(String(e));return undefined}};
@@ -93,6 +98,14 @@ export function App({library}:{library:boolean}) {
   useEffect(()=>{
     let disposed=false;const unlisten:(()=>void)[]=[];
     if(!isTauri()){setMessage('浏览器预览 · 系统粘贴、资源与窗口功能需启动 Tauri PoC');return}
+    const refresh=async()=>{
+      const token=libraryReads.current.begin();
+      try{const catalog=await invoke<Library>('get_library');if(disposed||!libraryReads.current.accepts(token))return;
+        const index=sessionView.current.selected;pendingSelection.current={id:latestItems.current[index]?.id??null,index};pendingScroll.current??=list.current?.scrollTop??0;setData(catalog);setLoaded(true);
+      }catch(error){if(!disposed&&libraryReads.current.accepts(token))throw error}
+    };
+    refreshLibrary.current=refresh;
+    const refreshQuietly=()=>{void refresh().catch(error=>setMessage(String(error)))};
     const attach=async()=>{
       try {
         const a=await listen<Wake>('wake',e=>{liveWindowEvent.current=true;setPanelVisible(true);changeTab(e.payload.tab);setWake(e.payload);if(typeof e.payload.targetBound==='boolean')setTargetBound(e.payload.targetBound);if(e.payload.warning)setMessage(e.payload.warning)});
@@ -103,9 +116,11 @@ export function App({library}:{library:boolean}) {
         if(disposed){esc();return}unlisten.push(esc);
         const b=await listen<Progress>('queue-progress',e=>{if(!disposed)acceptProgress(e.payload)});
         if(disposed){b();return}unlisten.push(b);
-        const [catalog,info]=await Promise.all([invoke<Library>('get_library'),invoke<typeof boot>('get_boot')]);
+        const changed=await listen('library-changed',refreshQuietly);if(disposed){changed();return}unlisten.push(changed);
+        window.addEventListener('focus',refreshQuietly);
+        const [,info]=await Promise.all([refresh(),invoke<typeof boot>('get_boot')]);
         if(!disposed){
-          setData(catalog);setBoot(info);setLoaded(true);
+          setBoot(info);
           if(!liveEscapeEvent.current){globalEscape.current=!!info.escapeRegistered;setEscapeError(info.escapeError??null)}
           // A delayed boot snapshot cannot overwrite an already handled wake,
           // rebind or explicit close. Pending wake only initializes a quiet UI.
@@ -116,7 +131,7 @@ export function App({library}:{library:boolean}) {
           if(info.platform!=='windows')setMessage('非 Windows 平台的系统粘贴尚未实现；当前仅预留跨平台界面边界。')
         }
       }catch(error){if(!disposed)setMessage(String(error))}
-    };void attach();return()=>{disposed=true;unlisten.forEach(fn=>fn())};
+    };void attach();return()=>{disposed=true;libraryReads.current.invalidate();unlisten.forEach(fn=>fn());window.removeEventListener('focus',refreshQuietly)};
   },[]);
   useEffect(()=>{
     if(!loaded||(!library&&(!wake||!panelVisible)))return;
@@ -138,10 +153,10 @@ export function App({library}:{library:boolean}) {
     const generation=++requestGeneration.current;
     readySequence.current++; // A pending wake rAF must not focus after paste starts.
     locked.current=true;activeRequest.current=null;pendingInteraction.current=false;earlyProgress.current.clear();setBusy(true);setQueueCaseId(kind==='queue'?record.id:null);setProgress(null);setMessage('正在准备粘贴请求…');
-    try{const id=await invoke<number>('paste',{caseId:record.id,kind,index:index??null,intervalMs:interval});
+    try{const id=await invoke<number>('paste',{caseId:record.id,kind,index:index??null,intervalMs:interval,expectedRevision:record.editRevision??0});
       if(generation===requestGeneration.current&&locked.current){activeRequest.current=id;const early=earlyProgress.current.get(id);earlyProgress.current.clear();if(early){acceptProgress(early)}else if(pendingInteraction.current){pendingInteraction.current=false;void run('panel_interaction',{requestId:id})}}
     }
-    catch(error){if(generation===requestGeneration.current){locked.current=false;activeRequest.current=null;pendingInteraction.current=false;setBusy(false);setMessage(String(error))}}
+    catch(error){if(generation===requestGeneration.current){locked.current=false;activeRequest.current=null;pendingInteraction.current=false;setBusy(false);if(String(error).includes('case_changed_refresh_and_retry')){setMessage('案例已更新，请待列表刷新后重新选择并重试');void refreshLibrary.current().catch(next=>setMessage(String(next)))}else setMessage(String(error))}}
   };
   const cancel=async()=>{await run('cancel_queue')};
   const dismiss=async()=>{await run(library?'close_library':'hide_panel')};
@@ -163,7 +178,7 @@ export function App({library}:{library:boolean}) {
     document.addEventListener('keydown',handle);document.addEventListener('keyup',release);
     return()=>{document.removeEventListener('keydown',handle);document.removeEventListener('keyup',release)};
   },[items,selected,interval,dict,library,targetBound]);
-  useEffect(()=>{list.current?.querySelector('[data-selected="true"]')?.scrollIntoView({block:'nearest'})},[selected]);
+  useEffect(()=>{if(skipSelectionScroll.current){skipSelectionScroll.current=false;return}list.current?.querySelector('[data-selected="true"]')?.scrollIntoView({block:'nearest'})},[selected]);
   const nav=<>{tabs.map(([id,name],i)=><button key={id} className={`${library?'navitem':'tab'} ${tab===id?'active':''}`} title={`Ctrl + Alt + ${i+1}`} onClick={()=>changeTab(id)}>{name}{library&&<span className="count">{data.cases.filter(r=>id==='all'||(id==='fav'?r.favorite:r.used>0)).length}</span>}</button>)}</>;
   const searchbox=<label className={library?'global-search':'search-wrap'}><span className="mag">⌕</span><input ref={search} value={query} onChange={e=>onSearchInput(e.target.value)} placeholder="搜索案例名称、提示词、项目、标签…" autoComplete="off" aria-label="搜索案例"/><button className="clear" title="清空关键词" onClick={()=>{setQuery('');search.current?.focus()}}>×</button></label>;
   const card=(r:Case,i:number)=>{

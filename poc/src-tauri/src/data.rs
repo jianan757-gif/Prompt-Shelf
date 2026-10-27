@@ -25,6 +25,8 @@ pub struct Case {
     pub updated_at: Option<i64>,
     #[serde(default,rename="lastUsedAt",alias="last_used_at")]
     pub last_used_at: Option<i64>,
+    #[serde(default,rename="editRevision")]
+    pub edit_revision: u64,
 }
 #[derive(Clone, Deserialize, Serialize)]
 pub struct Asset {
@@ -136,7 +138,7 @@ impl Library {
         Ok(())
     }
     pub fn demo() -> Self {
-        Self{assets:vec![],projects:vec![],tags:vec![],trash_count:0,cases:vec![Case{id:"demo-text".into(),title:"通用产品高清精修 · PoC".into(),prompt:"【非敏感 PoC 测试】严格保留产品构图、比例与标签，优化真实阴影及材质细节。\n这一行用于验证完整多行文字粘贴。".into(),project:"技术验证".into(),tags:vec!["产品精修".into()],favorite:true,used:1,result:None,refs:vec![],source_url:String::new(),created_at:None,updated_at:None,last_used_at:None}]}
+        Self{assets:vec![],projects:vec![],tags:vec![],trash_count:0,cases:vec![Case{id:"demo-text".into(),title:"通用产品高清精修 · PoC".into(),prompt:"【非敏感 PoC 测试】严格保留产品构图、比例与标签，优化真实阴影及材质细节。\n这一行用于验证完整多行文字粘贴。".into(),project:"技术验证".into(),tags:vec!["产品精修".into()],favorite:true,used:1,result:None,refs:vec![],source_url:String::new(),created_at:None,updated_at:None,last_used_at:None,edit_revision:0}]}
     }
 }
 fn contained(root: &Path, value: &str) -> Result<PathBuf, String> {

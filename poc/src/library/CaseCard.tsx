@@ -20,14 +20,14 @@ function LibraryThumbnail({asset,label,result,notice}:{asset?:Asset;label:string
   </button>;
 }
 /** Browse only: no editor/draft state or optimistic write is created in this stage. */
-export function CaseCard({record,query,assets,positions,notice}:{record:Case;query:string;assets:Map<string,Asset>;positions:Map<string,number>;notice:(text:string)=>void}){
+export function CaseCard({record,query,assets,positions,notice,onEdit,onSource}:{record:Case;query:string;assets:Map<string,Asset>;positions:Map<string,number>;notice:(text:string)=>void;onEdit:()=>void;onSource:(value:string)=>void}){
   const source=safeSource(record.sourceUrl);const stamp=dateLabel(record.updatedAt??record.createdAt);
   return <article className="case" data-case-id={record.id} data-case-state="saved" data-editable="false">
     <div className="casehead"><span className="case-title" title={record.title}><Mark text={record.title} query={query}/></span><span className="case-project" title={record.project}>{'· '}<Mark text={record.project||'独立案例'} query={query}/></span>
       <div className="case-tags">{record.tags.map(tag=><span className="tag-chip" key={tag}><Mark text={tag} query={query}/></span>)}</div>
       <div className="card-actions">
-        {source?<button type="button" className="iconbutton source-link" title={source} aria-label={`打开 ${record.title} 的来源链接`} onClick={()=>notice('来源链接打开暂未开放')}><Icon name="link" size={15}/></button>:<span className="iconbutton source-link unavailable" title="尚未设置来源链接，请先编辑案例" aria-label="未设置来源链接"><Icon name="link" size={15}/></span>}
-        <button type="button" className="iconbutton" title="在卡片内编辑" aria-label={`编辑 ${record.title}`} onClick={()=>notice('案例编辑暂未开放')}><Icon name="pencil"/></button>
+        {source?<button type="button" className="iconbutton source-link" title={source} aria-label={`打开 ${record.title} 的来源链接`} onClick={()=>onSource(source)}><Icon name="link" size={15}/></button>:<span className="iconbutton source-link unavailable" title="尚未设置来源链接，请先编辑案例" aria-label="未设置来源链接"><Icon name="link" size={15}/></span>}
+        <button type="button" className="iconbutton" title="在卡片内编辑" aria-label={`编辑 ${record.title}`} onClick={onEdit}><Icon name="pencil"/></button>
         <button type="button" className={`iconbutton ${record.favorite?'faved':''}`} title={record.favorite?'取消收藏':'收藏'} aria-label={`${record.favorite?'取消收藏':'收藏'} ${record.title}`} aria-pressed={record.favorite} onClick={()=>notice('收藏修改暂未开放')}><Icon name="star"/></button>
       </div>
     </div>

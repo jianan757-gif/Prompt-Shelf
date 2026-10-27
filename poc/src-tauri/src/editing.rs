@@ -1,0 +1,231 @@
+use crate::Runtime;
+use prompt_shelf_poc::{
+    cases::{CaseDocument, EditReceipt, SavedCase},
+    clipboard_input::{self, ClipboardImage},
+    data,
+    scope::authorize_thumbnails,
+};
+use std::{io::Write, path::PathBuf};
+use tauri::{Emitter, Manager};
+use tauri_plugin_dialog::DialogExt;
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportedImage {
+    #[serde(flatten)]
+    pub asset: data::Asset,
+    pub original_name: String,
+}
+
+fn library_only(window: &tauri::WebviewWindow) -> Result<(), String> {
+    if window.label() == "library_manager" {
+        Ok(())
+    } else {
+        Err("editing_only_from_library".into())
+    }
+}
+#[tauri::command]
+pub async fn begin_case_edit(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    case_id: Option<String>,
+) -> Result<EditReceipt, String> {
+    library_only(&window)?;
+    let state = app.state::<Runtime>();
+    let edits = state.edits.clone();
+    let store = state.store.clone();
+    let epoch = edits.epoch();
+    tauri::async_runtime::spawn_blocking(move || {
+        let document = store.edit_document(case_id.as_deref())?;
+        edits.begin_at(document, epoch)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+pub fn cancel_case_edit(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    session_id: String,
+) -> Result<(), String> {
+    library_only(&window)?;
+    app.state::<Runtime>().edits.cancel(&session_id)
+}
+#[tauri::command]
+pub async fn commit_case(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    session_id: String,
+    document: CaseDocument,
+) -> Result<SavedCase, String> {
+    library_only(&window)?;
+    let state = app.state::<Runtime>();
+    let edits = state.edits.clone();
+    let store = state.store.clone();
+    let saved =
+        tauri::async_runtime::spawn_blocking(move || edits.save(&store, &session_id, &document))
+            .await
+            .map_err(|e| e.to_string())??;
+    let revision = state
+        .library_revision
+        .fetch_add(1, std::sync::atomic::Ordering::AcqRel)
+        + 1;
+    state.log("case_saved",serde_json::json!({"caseId":saved.id,"editRevision":saved.edit_revision,"libraryRevision":revision}));
+    let _=app.emit("library-changed",serde_json::json!({"generation":1,"revision":revision,"entityIds":[saved.id],"reason":"case-saved"}));
+    Ok(saved)
+}
+#[tauri::command]
+pub fn normalize_source_url(window: tauri::WebviewWindow, value: String) -> Result<String, String> {
+    library_only(&window)?;
+    prompt_shelf_poc::cases::normalize_source(&value)
+}
+
+#[tauri::command]
+pub async fn import_case_images(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    session_id: String,
+    paths: Option<Vec<String>>,
+    clipboard: bool,
+    multiple: bool,
+) -> Result<Vec<ImportedImage>, String> {
+    library_only(&window)?;
+    let state = app.state::<Runtime>();
+    state.edits.check(&session_id)?;
+    let store = state.store.clone();
+    let edits = state.edits.clone();
+    let dialog_app = app.clone();
+    let images = tauri::async_runtime::spawn_blocking(move || {
+        edits.check(&session_id)?;
+        let (paths, png) = if clipboard {
+            match clipboard_input::read()? {
+                ClipboardImage::Files(paths) => (paths, None),
+                ClipboardImage::Png(png) => (vec![], Some(png)),
+                ClipboardImage::Dib(dib) => (vec![], Some(clipboard_input::dib_png(&dib)?)),
+                ClipboardImage::Empty => return Ok(vec![]),
+            }
+        } else {
+            (
+                match paths {
+                    Some(paths) => paths.into_iter().map(PathBuf::from).collect(),
+                    None => {
+                        let picker = dialog_app
+                            .dialog()
+                            .file()
+                            .set_parent(&window)
+                            .add_filter("图片", &["png", "jpg", "jpeg", "webp"]);
+                        let picked = if multiple {
+                            picker.blocking_pick_files().unwrap_or_default()
+                        } else {
+                            picker.blocking_pick_file().into_iter().collect()
+                        };
+                        picked
+                            .into_iter()
+                            .map(|path| path.into_path().map_err(|e| e.to_string()))
+                            .collect::<Result<Vec<_>, _>>()?
+                    }
+                },
+                None,
+            )
+        };
+        validate_import_count(multiple, paths.len() + usize::from(png.is_some()))?;
+        let mut images = vec![];
+        if let Some(png) = png {
+            let mut staged = tempfile::NamedTempFile::new_in(store.paths().staging())
+                .map_err(|e| e.to_string())?;
+            staged.write_all(&png).map_err(|e| e.to_string())?;
+            staged.as_file().sync_all().map_err(|e| e.to_string())?;
+            images.push(ImportedImage {
+                asset: store.import_image(staged.path())?,
+                original_name: "剪贴板图片.png".into(),
+            });
+        }
+        for path in paths {
+            edits.check(&session_id)?;
+            let original_name = path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned();
+            images.push(ImportedImage {
+                asset: store.import_image(&path)?,
+                original_name,
+            });
+        }
+        edits.check(&session_id)?;
+        Ok::<_, String>(images)
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+    // Exact thumb grants only; originals stay private, including newly imported images.
+    authorize_thumbnails(
+        &app,
+        &state.store,
+        &data::Library {
+            cases: vec![],
+            assets: images.iter().map(|image| image.asset.clone()).collect(),
+            projects: vec![],
+            tags: vec![],
+            trash_count: 0,
+        },
+    )?;
+    Ok(images)
+}
+fn validate_import_count(multiple: bool, count: usize) -> Result<(), String> {
+    if !multiple && count > 1 {
+        return Err("替换图片时只能导入一张；多图请使用追加参考图".into());
+    }
+    if count > 500 {
+        return Err("too_many_import_images".into());
+    }
+    Ok(())
+}
+#[tauri::command]
+pub fn open_source_url(window: tauri::WebviewWindow, value: String) -> Result<(), String> {
+    library_only(&window)?;
+    let url = prompt_shelf_poc::cases::normalize_source(&value)?;
+    if url.is_empty() {
+        return Err("source_url_empty".into());
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::ffi::OsStrExt;
+        let wide = |text: &str| {
+            std::ffi::OsStr::new(text)
+                .encode_wide()
+                .chain(Some(0))
+                .collect::<Vec<u16>>()
+        };
+        let verb = wide("open");
+        let url = wide(&url);
+        let result = unsafe {
+            windows_sys::Win32::UI::Shell::ShellExecuteW(
+                window.hwnd().map_err(|e| e.to_string())?.0,
+                verb.as_ptr(),
+                url.as_ptr(),
+                std::ptr::null(),
+                std::ptr::null(),
+                1,
+            )
+        };
+        if result as isize <= 32 {
+            return Err(format!("source_open_failed: {}", result as isize));
+        }
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        Err("source_open_not_implemented_on_this_platform".into())
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::validate_import_count;
+    #[test]
+    fn replacement_is_single_and_append_can_be_multiple() {
+        assert!(validate_import_count(false, 0).is_ok());
+        assert!(validate_import_count(false, 1).is_ok());
+        assert!(validate_import_count(false, 2).is_err());
+        assert!(validate_import_count(true, 500).is_ok());
+        assert!(validate_import_count(true, 501).is_err());
+    }
+}

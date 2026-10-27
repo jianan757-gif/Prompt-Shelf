@@ -11,7 +11,7 @@ use std::{
 pub const SCHEMA_VERSION: i64 = 1;
 const INITIAL: &str = include_str!("migrations/001_initial.sql");
 pub struct Store {
-    connection: Mutex<Connection>,
+    pub(crate) connection: Mutex<Connection>,
     paths: DataPaths,
     // Held for this Store's whole lifetime, including offline CLI. Never unlink a live lock file.
     _lease: File,
@@ -223,7 +223,7 @@ impl Store {
     }
     fn project(&self, case_id: Option<&str>, thumbnails: bool) -> Result<data::Library, String> {
         let connection = self.connection.lock().map_err(|e| e.to_string())?;
-        let mut statement=connection.prepare("SELECT c.id,c.title,c.prompt,coalesce(p.name,''),c.favorite,c.use_count,c.source_url,c.created_at,c.updated_at,c.last_used_at FROM cases c LEFT JOIN projects p ON p.id=c.project_id WHERE c.deleted_at IS NULL AND (?1 IS NULL OR c.id=?1) ORDER BY c.created_at DESC,c.id").map_err(sql)?;
+        let mut statement=connection.prepare("SELECT c.id,c.title,c.prompt,coalesce(p.name,''),c.favorite,c.use_count,c.source_url,c.created_at,c.updated_at,c.last_used_at,c.edit_revision FROM cases c LEFT JOIN projects p ON p.id=c.project_id WHERE c.deleted_at IS NULL AND (?1 IS NULL OR c.id=?1) ORDER BY c.created_at DESC,c.id").map_err(sql)?;
         let mut cases = statement
             .query_map([case_id], |r| {
                 Ok(data::Case {
@@ -233,7 +233,7 @@ impl Store {
                     project: r.get(3)?,
                     favorite: r.get(4)?,
                     used: r.get::<_, i64>(5)? as u64,
-                    source_url:r.get(6)?,created_at:r.get(7)?,updated_at:r.get(8)?,last_used_at:r.get(9)?,
+                    source_url:r.get(6)?,created_at:r.get(7)?,updated_at:r.get(8)?,last_used_at:r.get(9)?,edit_revision:r.get::<_,i64>(10)? as u64,
                     tags: vec![],
                     result: None,
                     refs: vec![],

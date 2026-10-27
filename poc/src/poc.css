@@ -16,3 +16,5 @@ html,body,#root,.quick-root,.library-root{height:100%;width:100%;overflow:hidden
 .quick-root .paste-spinner{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px;border:1.5px solid #cbd9ed;border-top-color:#526eab;border-radius:50%;animation:paste-spin .7s linear infinite}
 @keyframes paste-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.quick-root .paste-spinner{animation:none}}
+.quick-root .search-wrap:focus-within{border-color:#e1e5ed;box-shadow:0 1px 3px #22334404}
+.quick-root .search-wrap input:focus,.quick-root .search-wrap input:focus-visible{outline:none;box-shadow:none}
