@@ -1,0 +1,11 @@
+   Compiling prompt-shelf-poc v0.1.0 (<PROJECT>\poc\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.61s
+     Running unittests src\lib.rs (poc\src-tauri\target-stage-b2\debug\deps\prompt_shelf_poc-baa7045bd5adb6f3.exe)
+
+running 4 tests
+test closing::tests::delivery_failure_unlocks_editing_but_cannot_undo_claimed_close ... ok
+test closing::tests::finishing_rejects_cancel_and_failure_clears_request_for_retry ... ok
+test closing::tests::pending_close_blocks_new_epoch_until_user_continues ... ok
+test closing::tests::repeated_requests_escalate_exit_and_failed_ack_keeps_request ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 31 filtered out; finished in 0.00s

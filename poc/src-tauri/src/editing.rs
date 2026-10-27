@@ -33,10 +33,9 @@ pub async fn begin_case_edit(
     let state = app.state::<Runtime>();
     let edits = state.edits.clone();
     let store = state.store.clone();
-    let epoch = edits.epoch();
+    let epoch = {let closing=state.closing.lock().map_err(|e|e.to_string())?;closing.editing_epoch(&edits)?};
     tauri::async_runtime::spawn_blocking(move || {
-        let document = store.edit_document(case_id.as_deref())?;
-        edits.begin_at(document, epoch)
+        edits.begin_persistent(&store, case_id.as_deref(), None, false, epoch)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -48,7 +47,27 @@ pub fn cancel_case_edit(
     session_id: String,
 ) -> Result<(), String> {
     library_only(&window)?;
-    app.state::<Runtime>().edits.cancel(&session_id)
+    let state=app.state::<Runtime>();
+    state.edits.discard(&state.store,&session_id)
+}
+#[tauri::command]
+pub async fn save_case_draft(app:tauri::AppHandle,window:tauri::WebviewWindow,session_id:String,document:CaseDocument,save_seq:u64)->Result<u64,String>{
+    library_only(&window)?;let state=app.state::<Runtime>();let edits=state.edits.clone();let store=state.store.clone();
+    tauri::async_runtime::spawn_blocking(move||edits.stash(&store,&session_id,&document,save_seq)).await.map_err(|e|e.to_string())?
+}
+#[tauri::command]
+pub async fn list_case_drafts(app:tauri::AppHandle,window:tauri::WebviewWindow)->Result<Vec<prompt_shelf_poc::drafts::DraftSummary>,String>{
+    library_only(&window)?;let store=app.state::<Runtime>().store.clone();tauri::async_runtime::spawn_blocking(move||store.draft_summaries()).await.map_err(|e|e.to_string())?
+}
+#[tauri::command]
+pub async fn recover_case_draft(app:tauri::AppHandle,window:tauri::WebviewWindow,draft_id:String,as_new:bool)->Result<EditReceipt,String>{
+    library_only(&window)?;let state=app.state::<Runtime>();let edits=state.edits.clone();let store=state.store.clone();let epoch={let closing=state.closing.lock().map_err(|e|e.to_string())?;closing.editing_epoch(&edits)?};
+    tauri::async_runtime::spawn_blocking(move||edits.begin_persistent(&store,None,Some(&draft_id),as_new,epoch)).await.map_err(|e|e.to_string())?
+}
+#[tauri::command]
+pub async fn discard_case_draft(app:tauri::AppHandle,window:tauri::WebviewWindow,draft_id:String)->Result<(),String>{
+    library_only(&window)?;let state=app.state::<Runtime>();let edits=state.edits.clone();let store=state.store.clone();
+    tauri::async_runtime::spawn_blocking(move||edits.discard_unopened(&store,&draft_id)).await.map_err(|e|e.to_string())?
 }
 #[tauri::command]
 pub async fn commit_case(

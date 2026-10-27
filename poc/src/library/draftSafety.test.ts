@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {DraftClock} from './draftSafety.ts';
+function fixture(){let now=0,id=0,writes=0;const tasks=new Map<number,{at:number;callback:()=>void}>();const timer=((callback:()=>void,delay:number)=>{tasks.set(++id,{at:now+delay,callback});return id}) as unknown as typeof setTimeout;const clear=((id:number)=>tasks.delete(id)) as unknown as typeof clearTimeout;const clock=new DraftClock(()=>writes++,timer,clear);const tick=(time:number)=>{while(true){const next=[...tasks].filter(([,t])=>t.at<=now+time).sort((a,b)=>a[1].at-b[1].at)[0];if(!next)break;const advance=next[1].at-now;time-=advance;now+=advance;tasks.delete(next[0]);next[1].callback()}now+=time};return {clock,tick,writes:()=>writes,tasks};}
+test('typing waits 600ms after the last edit',()=>{const f=fixture();f.clock.schedule();f.tick(400);f.clock.schedule();f.tick(599);assert.equal(f.writes(),0);f.tick(1);assert.equal(f.writes(),1);assert.equal(f.tasks.size,0)});
+test('continuous typing persists at 2 seconds and starts a new window',()=>{const f=fixture();for(let i=0;i<5;i++){f.clock.schedule();f.tick(400)}assert.equal(f.writes(),1);f.clock.schedule();f.tick(600);assert.equal(f.writes(),2)});
+test('image operations flush immediately and ending an edit cancels scheduled writes',()=>{const f=fixture();f.clock.schedule();f.clock.flush();assert.equal(f.writes(),1);f.clock.schedule();f.clock.stop();f.tick(5000);assert.equal(f.writes(),1);assert.equal(f.tasks.size,0)});

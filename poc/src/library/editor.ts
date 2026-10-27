@@ -1,7 +1,8 @@
 import type {Asset} from '../types.ts';
 export interface ImageReference {id:string;assetId:string;originalName:string}
 export interface CaseDocument {id:string;baseRevision:number;title:string;prompt:string;project:string;tags:string[];sourceUrl:string;result:ImageReference|null;references:ImageReference[]}
-export interface EditReceipt {sessionId:string;document:CaseDocument}
+export interface EditReceipt {sessionId:string;document:CaseDocument;draftId?:string;saveSeq?:number}
+export interface DraftSummary {id:string;caseId:string|null;title:string;prompt:string;referenceCount:number;resultCount:number;updatedAt:number;targetStatus:'new'|'live'|'missing'|'deleted';conflict:boolean}
 export interface ImportedImage extends Asset {originalName:string}
 export type Slot='append'|'result'|string;
 export interface ImportTicket {sessionId:string;slot:Slot;version:number}

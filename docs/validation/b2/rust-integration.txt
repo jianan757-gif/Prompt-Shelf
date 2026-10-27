@@ -1,0 +1,24 @@
+   Compiling prompt-shelf-poc v0.1.0 (<PROJECT>\poc\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.00s
+     Running tests\draft_crash.rs (poc\src-tauri\target-stage-b2\debug\deps\draft_crash-7318e00115c79946.exe)
+
+running 2 tests
+test draft_crash_child ... ok
+test killed_worker_reopens_existing_and_new_drafts_without_formal_changes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests\offline_process.rs (poc\src-tauri\target-stage-b2\debug\deps\offline_process-6ebad1ef52222093.exe)
+
+running 2 tests
+test offline_cli_requires_explicit_directory_before_any_data_access ... ok
+test offline_real_process_import_exit_reopen_and_in_use_guard ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+     Running tests\scope_refresh.rs (poc\src-tauri\target-stage-b2\debug\deps\scope_refresh-da05da0841033653.exe)
+
+running 1 test
+test incremental_import_deduplicates_and_refresh_scope_grants_only_thumbnails ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s

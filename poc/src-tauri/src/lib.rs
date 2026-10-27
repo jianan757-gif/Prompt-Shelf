@@ -1,7 +1,9 @@
 pub mod assets;
 pub mod cases;
 pub mod clipboard_input;
+pub mod closing;
 pub mod data;
+pub mod drafts;
 pub mod paths;
 pub mod scope;
 pub mod store;

@@ -8,7 +8,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-pub const SCHEMA_VERSION: i64 = 1;
+pub const SCHEMA_VERSION: i64 = 2;
 const INITIAL: &str = include_str!("migrations/001_initial.sql");
 pub struct Store {
     pub(crate) connection: Mutex<Connection>,
@@ -32,7 +32,7 @@ fn apply_initial(connection: &mut Connection, script: &str) -> Result<(), String
     let transaction = connection.transaction().map_err(sql)?;
     transaction.execute_batch(script).map_err(sql)?;
     transaction
-        .pragma_update(None, "user_version", SCHEMA_VERSION)
+        .pragma_update(None, "user_version", 1)
         .map_err(sql)?;
     transaction.commit().map_err(sql)
 }
@@ -68,6 +68,12 @@ impl Store {
                 return Err("unversioned_nonempty_database".into());
             }
             apply_initial(&mut connection, INITIAL)?;
+        }
+        if version < 2 {
+            let tx = connection.transaction().map_err(sql)?;
+            tx.execute_batch(include_str!("migrations/002_drafts.sql")).map_err(sql)?;
+            tx.pragma_update(None, "user_version", 2).map_err(sql)?;
+            tx.commit().map_err(sql)?;
         }
         connection
             .pragma_update(None, "journal_mode", "WAL")

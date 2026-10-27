@@ -3,7 +3,7 @@ mod escape;
 mod platform;
 mod queue;
 mod editing;
-use editing::{begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url};
+use editing::{begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url,save_case_draft,list_case_drafts,recover_case_draft,discard_case_draft};
 use prompt_shelf_poc::{data,paths::DataPaths,store::Store,scope::authorize_thumbnails};
 use platform::{NativePlatform, PasteItem, PastePlatform};
 use std::{
@@ -23,7 +23,7 @@ use tauri::{
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 type Target = <NativePlatform as PastePlatform>::Target;
-const BUILD_REVISION: &str = "4.4-b1-business";
+const BUILD_REVISION: &str = "4.4-b2-r2";
 struct Runtime {
     platform: Arc<NativePlatform>,
     queue: Arc<queue::Queue>,
@@ -32,6 +32,8 @@ struct Runtime {
     store: Arc<Store>,
     edits: Arc<prompt_shelf_poc::cases::EditSessions>,
     library_revision: AtomicU64,
+    closing: Mutex<prompt_shelf_poc::closing::CloseProtocol>,
+    allow_exit: std::sync::atomic::AtomicBool,
     log: Mutex<std::fs::File>,
     log_path: PathBuf,
     token: AtomicU64,
@@ -175,7 +177,7 @@ fn get_boot(window: tauri::WebviewWindow, state: tauri::State<Runtime>) -> serde
         None
     };
     let session = state.escape.lock().unwrap();
-    serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-b1-business","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"libraryRevision":state.library_revision.load(Ordering::Acquire),"generation":1,"escapeRegistered":session.registered,"escapeError":session.error})
+    serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-b2-r2","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"libraryRevision":state.library_revision.load(Ordering::Acquire),"generation":1,"escapeRegistered":session.registered,"escapeError":session.error})
 }
 #[tauri::command]
 async fn search_ready(
@@ -280,17 +282,37 @@ fn create_library(app: &tauri::AppHandle) -> Result<(), String> {
     }
     Ok(())
 }
-#[tauri::command]
-fn close_library(app: tauri::AppHandle) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window("library_manager") {
-        window.destroy().map_err(|e| e.to_string())?;
+fn request_close(app:&tauri::AppHandle,action:&str)->Result<(),String>{
+    let state=app.state::<Runtime>();
+    if let Some(window)=app.get_webview_window("library_manager"){
+        let request=state.closing.lock().map_err(|e|e.to_string())?.request(action);
+        let token=request.token;
+        if let Err(error)=window.emit("edit-close-request",request){state.closing.lock().map_err(|e|e.to_string())?.delivery_failed(token);return Err(error.to_string())}
+        if action=="exit"{if let Err(error)=window.show().and_then(|_|window.set_focus()){state.closing.lock().map_err(|e|e.to_string())?.delivery_failed(token);return Err(error.to_string())}}
+    }else if action=="exit"{
+        state.edits.prepare_close()?;state.queue.cancel();state.allow_exit.store(true,Ordering::Release);app.exit(0);
     }
-    let state = app.state::<Runtime>();
-    *state.library_creating.lock().unwrap() = false;
-    state.log(
-        "library_destroyed",
-        serde_json::json!({"webviewProcessRelease":"requires_measurement"}),
-    );
+    Ok(())
+}
+#[tauri::command]
+fn close_library(app: tauri::AppHandle) -> Result<(), String> {request_close(&app,"close")}
+#[tauri::command]
+fn pending_library_close(window:tauri::WebviewWindow,state:tauri::State<Runtime>)->Result<Option<prompt_shelf_poc::closing::CloseRequest>,String>{
+    if window.label()!="library_manager"{return Err("library_only".into())}Ok(state.closing.lock().map_err(|e|e.to_string())?.pending.clone())
+}
+#[tauri::command]
+fn cancel_library_close(window:tauri::WebviewWindow,state:tauri::State<Runtime>,token:u64)->Result<(),String>{
+    if window.label()!="library_manager"{return Err("library_only".into())}state.closing.lock().map_err(|e|e.to_string())?.cancel(token)
+}
+#[tauri::command]
+fn finish_library_close(app:tauri::AppHandle,window:tauri::WebviewWindow,token:u64)->Result<(),String>{
+    if window.label()!="library_manager"{return Err("library_only".into())}
+    let state=app.state::<Runtime>();
+    let request=state.closing.lock().map_err(|e|e.to_string())?.claim(token)?;
+    // No destroy or exit until the editor transaction has succeeded. Invalidates queued begin.
+    if let Err(error)=state.edits.prepare_close(){state.closing.lock().map_err(|e|e.to_string())?.failed(token);return Err(error)}
+    if request.action=="exit"{state.queue.cancel();state.allow_exit.store(true,Ordering::Release);app.exit(0);}
+    else{if let Err(error)=window.destroy(){state.closing.lock().map_err(|e|e.to_string())?.failed(token);return Err(error.to_string())}}
     Ok(())
 }
 #[tauri::command]
@@ -308,7 +330,7 @@ fn window_action(window: tauri::WebviewWindow, action: String) -> Result<(), Str
             if window.label() == "quick_panel" {
                 return close_panel(window.app_handle());
             } else {
-                window.destroy()
+                return request_close(window.app_handle(),"close");
             }
         }
         _ => return Err("unknown_action".into()),
@@ -420,7 +442,7 @@ fn main() {
             for (code,tab) in [(Code::Digit1,"all"),(Code::Digit2,"recent"),(Code::Digit3,"fav")]{if shortcut.matches(Modifiers::CONTROL|Modifiers::ALT,code){wake(app,tab,true);return;}}
         }).build())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![get_library,get_boot,ready,search_ready,hide_panel,panel_escape,cancel_queue,panel_interaction,open_library,close_library,window_action,paste,begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url])
+        .invoke_handler(tauri::generate_handler![get_library,get_boot,ready,search_ready,hide_panel,panel_escape,cancel_queue,panel_interaction,open_library,close_library,window_action,paste,begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url,save_case_draft,list_case_drafts,recover_case_draft,discard_case_draft,pending_library_close,cancel_library_close,finish_library_close])
         .setup(|app|{
             let mut arguments=std::env::args_os().skip(1);let mut override_directory=None;
             while let Some(argument)=arguments.next(){
@@ -438,7 +460,7 @@ fn main() {
             let platform=Arc::new(NativePlatform::default());
             #[cfg(target_os="windows")]
             if let Some(window)=app.get_webview_window("quick_panel"){platform.attach_window(&window)?;}
-            let runtime=Runtime{platform,queue:Arc::new(queue::Queue::default()),escape:Mutex::new(escape::EscapeSession::default()),target:Mutex::new(None),store,edits:Arc::new(prompt_shelf_poc::cases::EditSessions::default()),library_revision:AtomicU64::new(0),log:Mutex::new(log),log_path,token:AtomicU64::new(1),wake:Mutex::new(None),library_start:Mutex::new(None),library_creating:Mutex::new(false),tray_status:Mutex::new(None)};
+            let runtime=Runtime{platform,queue:Arc::new(queue::Queue::default()),escape:Mutex::new(escape::EscapeSession::default()),target:Mutex::new(None),store,edits:Arc::new(prompt_shelf_poc::cases::EditSessions::default()),library_revision:AtomicU64::new(0),closing:Mutex::new(Default::default()),allow_exit:std::sync::atomic::AtomicBool::new(false),log:Mutex::new(log),log_path,token:AtomicU64::new(1),wake:Mutex::new(None),library_start:Mutex::new(None),library_creating:Mutex::new(false),tray_status:Mutex::new(None)};
             runtime.log("startup",serde_json::json!({"cases":case_count,"assets":asset_count,"exe":std::env::current_exe().ok(),"revision":BUILD_REVISION,"platform":std::env::consts::OS,"resourceThreshold":"baseline_only_not_approved"}));
             app.manage(runtime);
             let quick=MenuItem::with_id(app,"quick","快捷面板 · Ctrl+Alt+1",true,None::<&str>)?;
@@ -449,16 +471,17 @@ fn main() {
             *app.state::<Runtime>().tray_status.lock().unwrap()=Some(status.clone());
             let menu=Menu::with_items(app,&[&status,&quick,&library,&logs,&quit])?;
             let icon=tauri::image::Image::new_owned([36u8,91,255,255].repeat(32*32),32,32);
-            TrayIconBuilder::with_id("main").icon(icon).tooltip("Prompt Shelf · 4.3 PoC").menu(&menu).on_menu_event(|app,event|match event.id.as_ref(){"quick"=>wake(app,"all",false),"library"=>{let app=app.clone();tauri::async_runtime::spawn(async move{if let Err(error)=open_library(app.clone()).await{app.state::<Runtime>().log("library_create_failed",serde_json::json!({"error":error}));if let Some(status)=app.state::<Runtime>().tray_status.lock().unwrap().as_ref(){let _=status.set_text(format!("主库创建失败：{error}"));}}});},"quit"=>{let cancelled=app.state::<Runtime>().queue.cancel();app.state::<Runtime>().log("exit",serde_json::json!({"cancelAccepted":cancelled,"dispatchBoundary":"cancel waits for any already-started dispatch; no new dispatch after acceptance"}));app.exit(0);},_=>{}}).build(app)?;
+            TrayIconBuilder::with_id("main").icon(icon).tooltip("Prompt Shelf · 4.3 PoC").menu(&menu).on_menu_event(|app,event|match event.id.as_ref(){"quick"=>wake(app,"all",false),"library"=>{let app=app.clone();tauri::async_runtime::spawn(async move{if let Err(error)=open_library(app.clone()).await{app.state::<Runtime>().log("library_create_failed",serde_json::json!({"error":error}));if let Some(status)=app.state::<Runtime>().tray_status.lock().unwrap().as_ref(){let _=status.set_text(format!("主库创建失败：{error}"));}}});},"quit"=>{if let Err(error)=request_close(app,"exit"){app.state::<Runtime>().log("close_request_failed",serde_json::json!({"error":error}));}},_=>{}}).build(app)?;
             for code in [Code::Digit1,Code::Digit2,Code::Digit3]{app.global_shortcut().register(Shortcut::new(Some(Modifiers::CONTROL|Modifiers::ALT),code))?;}
             Ok(())
         })
         .on_window_event(|window,event|{
             if let tauri::WindowEvent::Focused(true)=event{if window.label()=="quick_panel"{if let Some(state)=window.try_state::<Runtime>(){if state.platform.panel_is_foreground()&&state.queue.cancel_panel_refocus(){state.log("panel_refocused",serde_json::json!({"action":"cancel_request_no_refocus_target"}));}}}}
-            if let tauri::WindowEvent::CloseRequested{api,..}=event{if window.label()=="quick_panel"{api.prevent_close();let _=close_panel(window.app_handle());}}
-            if let tauri::WindowEvent::Destroyed=event{if window.label()=="library_manager"{let state=window.state::<Runtime>();*state.library_creating.lock().unwrap()=false;state.edits.clear();state.log("library_window_destroyed",serde_json::json!({}));}}
+            if let tauri::WindowEvent::CloseRequested{api,..}=event{if window.label()=="quick_panel"{api.prevent_close();let _=close_panel(window.app_handle());}else if window.label()=="library_manager"{api.prevent_close();let _=request_close(window.app_handle(),"close");}}
+            if let tauri::WindowEvent::Destroyed=event{if window.label()=="library_manager"{let state=window.state::<Runtime>();*state.library_creating.lock().unwrap()=false;state.edits.clear();state.closing.lock().unwrap().reset();state.log("library_window_destroyed",serde_json::json!({}));}}
         })
-        .run(tauri::generate_context!()).expect("PoC startup failed: check hotkey conflicts and manifest paths");
+        .build(tauri::generate_context!()).expect("PoC startup failed: check hotkey conflicts and manifest paths")
+        .run(|app,event|{if let tauri::RunEvent::ExitRequested{api,..}=event{if !app.state::<Runtime>().allow_exit.load(Ordering::Acquire){api.prevent_exit();let _=request_close(app,"exit");}}});
 }
 #[cfg(test)]
 mod wake_policy_tests {

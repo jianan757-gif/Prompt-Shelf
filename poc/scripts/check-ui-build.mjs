@@ -4,7 +4,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const phase=process.argv[2]??'b1-ui';
-assert.ok(['b1-ui','b1-business'].includes(phase),'expected report phase b1-ui or b1-business');
+assert.ok(['b1-ui','b1-business','b2','b2-r2'].includes(phase),'expected report phase b1-ui, b1-business or b2');
 const report=path.join(root,'reports',phase);
 await mkdir(report,{recursive:true});
 const dist=path.join(root,'dist');

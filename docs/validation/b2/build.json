@@ -1,0 +1,54 @@
+{
+  "revision": "4.4-b2-edit-safety",
+  "state": "release-built-source-frozen",
+  "frozenAt": "2026-10-27T09:07:20.6100444+08:00",
+  "baseline": "ce43010",
+  "B1Tag": "73fedd9",
+  "sourceFiles": 71,
+  "sourceManifestSha256": "a495e8460985a71070b58a808532d8818a2a2b365331b1f2cecd8f63146d1c76",
+  "targetDirectory": "poc/src-tauri/target-stage-b2",
+  "frontendTestsPassed": 28,
+  "priorFullRunLibPass": 30,
+  "priorFullRunMainPass": 31,
+  "priorFullCommand": "FAILED: child fixture; fixed targeted integration passed",
+  "finalTargetedIntegrationHarnessPass": 5,
+  "integrationNote": "One child entry returns immediately without child env; four assertion tests",
+  "finalClosingHarnessPass": 4,
+  "newDraftImageTargetedPass": 1,
+  "lateWriteTargetedPass": 1,
+  "typescriptVite": "PASS",
+  "packagedCss": "PASS",
+  "gui": "NOT_RUN_PENDING_USER_ACCEPTANCE",
+  "schema": 2,
+  "downgrade": "NOT_IMPLEMENTED_B1_REJECTS_SCHEMA2",
+  "finalBuildLogs": [
+    "windows-release-final.txt",
+    "cli-release-final.txt"
+  ],
+  "finalCompileLogs": [
+    "main-compile-close-fix.txt",
+    "frontend-build-close-fix.txt"
+  ],
+  "builtAt": "2026-10-27T09:10:49.2946745+08:00",
+  "executables": [
+    {
+      "path": "poc/src-tauri/target-stage-b2/release/prompt-shelf-poc.exe",
+      "bytes": 13795840,
+      "sha256": "932c0f1bc6c5fe32472f6994313636e9a719daa70a4c154f9e1306e26d471064",
+      "format": "PE32+ x86_64",
+      "subsystem": 2
+    },
+    {
+      "path": "poc/src-tauri/target-stage-b2/release/prompt-shelf-store.exe",
+      "bytes": 3107328,
+      "sha256": "eeb237ee4fee1ce71698e47adf9e53b2ac4e5e33b781a866f3a9732335da83b6",
+      "format": "PE32+ x86_64",
+      "subsystem": 3
+    }
+  ],
+  "sourceManifestAfterBuildMatches": true,
+  "historicalReleasesUnchanged": true,
+  "windowsRelease": "PASS windows-release-final.txt",
+  "cliRelease": "PASS cli-release-final.txt",
+  "packagedCssFinal": "PASS check-ui-build-final.txt"
+}

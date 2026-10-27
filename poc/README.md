@@ -1,6 +1,6 @@
-# Prompt Shelf · 4.4 B1 案例保存
+# Prompt Shelf · 4.4 B2 R2 编辑安全与图片交互
 
-沿用 Tauri 2 + Rust + React/TypeScript、阶段 A 底座和已验收 B1 UI。本轮完成案例内联编辑、图片操作、手动保存/取消和双窗刷新；不实现 B2 自动草稿/异常恢复/完整关闭拦截，也不扩展 C–F。
+沿用 Tauri 2 + Rust + React/TypeScript、阶段 A 底座和已验收 B1 UI。B2 增加 SQLite 自动草稿、异常恢复与未保存处理，承接 B1 的案例内联编辑、图片操作和双窗刷新。停止在 B2，不扩展 C–F。
 
 ## 构建与验证
 
@@ -11,13 +11,13 @@ cd poc
 pnpm install --frozen-lockfile
 pnpm test
 pnpm build
-$env:CARGO_TARGET_DIR = Join-Path $PWD 'src-tauri/target-stage-b1-business'
+$env:CARGO_TARGET_DIR = Join-Path $PWD 'src-tauri/target-stage-b2-r2'
 cargo test --manifest-path src-tauri/Cargo.toml --locked
 pnpm tauri build --no-bundle -- --locked
 cargo build --manifest-path src-tauri/Cargo.toml --release --bin prompt-shelf-store --locked
 ```
 
-两个 exe 位于 target-stage-b1-business/release/：prompt-shelf-poc.exe（主程序，文件名保留）、prompt-shelf-store.exe（离线工具）。旧阶段 A、round7 等目录不覆盖。reports/b1-business/ 留本机测试、构建与哈希；编译/Mock 验证不代替真实目标接收和 Windows UI 手测。
+两个 exe 位于 target-stage-b2-r2/release/：prompt-shelf-poc.exe（主程序，文件名保留）、prompt-shelf-store.exe（离线工具）。旧阶段 A、round7 等目录不覆盖。reports/b2-r2/ 留本机测试、构建与哈希；编译/Mock 验证不代替真实目标接收和 Windows UI 手测。
 
 ## 数据目录与启动
 
@@ -26,7 +26,7 @@ cargo build --manifest-path src-tauri/Cargo.toml --release --bin prompt-shelf-st
 GUI 仅支持可选 --data-dir <directory>，测试/开发指定独立目录：
 
 ```powershell
-& './src-tauri/target-stage-b1-business/release/prompt-shelf-poc.exe' --data-dir 'D:/PromptShelf-test/library-a'
+& './src-tauri/target-stage-b2-r2/release/prompt-shelf-poc.exe' --data-dir 'D:/PromptShelf-test/library-a'
 ```
 
 主程序先初始化官方 single-instance 插件，再运行其他插件和 setup。重复启动不执行导入、数据打开、热键注册或目标改绑。单库单连接受 Mutex<Connection> 保护，SQL/文件工作在 blocking worker 中进行。Store 全生命周期持有 .library.lock 的 OS 锁，离线工具与 GUI、两个离线工具不能同时打开同一目录；进程退出由 OS 释放，不删除锁文件。
@@ -48,9 +48,9 @@ GUI 仅支持可选 --data-dir <directory>，测试/开发指定独立目录：
 prompt-shelf-store 是独立 console binary，无 Tauri Builder、窗口、托盘、热键或系统输入。必须提供 --data-dir，可附 --import-manifest <path> 和 --check。每次成功均执行完整性/外键/原图哈希检查，输出一行 JSON；失败非零退出。
 
 ```powershell
-& './src-tauri/target-stage-b1-business/release/prompt-shelf-store.exe' --data-dir 'D:/PromptShelf-test/library-a' --import-manifest '../fixtures/100x500/manifest.json' --check
+& './src-tauri/target-stage-b2-r2/release/prompt-shelf-store.exe' --data-dir 'D:/PromptShelf-test/library-a' --import-manifest '../fixtures/100x500/manifest.json' --check
 # 导入进程退出后，以另一进程重开
-& './src-tauri/target-stage-b1-business/release/prompt-shelf-store.exe' --data-dir 'D:/PromptShelf-test/library-a' --check
+& './src-tauri/target-stage-b2-r2/release/prompt-shelf-store.exe' --data-dir 'D:/PromptShelf-test/library-a' --check
 ```
 
 先关闭持有同目录的程序；CLI 仍检测占用并拒绝打开。导入只允许空库，使用原 schema-v1 fixture 格式；original/thumb 必须是 manifest 根内存在的相对文件且互不混用。旧 thumb 只作兼容输入验证，正式缩略图从新保存原图重建。旧 ID 映射为新 UUID；同 hash 一资产/一原图，同案多位置、效果图/参考图与跨案共享保留为独立引用行。
@@ -97,8 +97,42 @@ reports/stage-a/                 本阶段证据
 
 保存后 library-changed 通知两窗口重读；监听先于首次读取，序号拒绝迟到响应，重新聚焦也从 SQLite 补拉。快捷面板按稳定案例 ID 保留选中/浏览位置；调用携带显示的 editRevision，保存重排后旧版本请求会被拒绝并刷新，避免旧下标指向新图片。queue/escape/平台输出链路保留。
 
-B1 只显示“未正式保存”，没有自动草稿承诺。编辑期间切换会丢失卡片的搜索/筛选或另开编辑，会提示先保存/取消；完整窗口关闭、托盘退出和异常中断保护在 B2，关闭仍会丢失未保存输入。不要把本阶段当作完整编辑安全交付。
+B1 阶段只显示“未正式保存”，没有自动草稿承诺。编辑期间切换会丢失卡片的搜索/筛选或另开编辑，会提示先保存/取消；完整窗口关闭、托盘退出和异常中断保护在 B2，关闭仍会丢失未保存输入。不要把本阶段当作完整编辑安全交付。
 
-当前产物目录为 src-tauri/target-stage-b1-business，GUI/CLI 参数沿用 --data-dir、--import-manifest、--check。复现：pnpm test；pnpm build；node scripts/check-ui-build.mjs b1-business；报告在 reports/b1-business/。新增官方 dialog 2.8.3（MIT/Apache-2.0），用于 Rust 原生文件选择；image 增启 BMP，仅用于剪贴板 DIB 转换，没有新 UI 框架。
+B1 原产物目录为 src-tauri/target-stage-b1-business，GUI/CLI 参数沿用 --data-dir、--import-manifest、--check。复现：pnpm test；pnpm build；node scripts/check-ui-build.mjs b1-business；报告在 reports/b1-business/。新增官方 dialog 2.8.3（MIT/Apache-2.0），用于 Rust 原生文件选择；image 增启 BMP，仅用于剪贴板 DIB 转换，没有新 UI 框架。
 
-2026-10-27 用户确认独立测试库 B1 业务清单 1～8 全部通过，并完成搜索框样式复测。自动化、构建与用户实测分别见 [公开证据](../docs/validation/b1-business/README.md)。交付停在 B1，不进入 B2。
+2026-10-27 用户确认独立测试库 B1 业务清单 1～8 全部通过，并完成搜索框样式复测。自动化、构建与用户实测分别见 [公开证据](../docs/validation/b1-business/README.md)。该记录是 B1 验收结论；B2 验证单独记录。
+
+## B2 自动草稿与编辑安全
+
+文字修改采用 600ms 防抖、持续输入约 2 秒一次；图片添加/替换/排序/移除立即排入 SQLite 草稿写入。界面仅在当前序号获得后端确认后显示琥珀色“未正式保存 · 自动保护草稿”；写入中和失败单独标明。尚未落盘的最后输入不能承诺在断电或强杀后恢复。
+
+主库重开会展示未完成草稿摘要（标题、正文片段、图片数和时间）；恢复只进入编辑，已有案例仍使用原基准修订，新建稿不进入正式案例或快捷面板。版本冲突拒绝覆盖并保留草稿；原目标缺失/在回收站时不会自动复活，可明确选择作为新草稿。支持稍后处理及逐份恢复。
+
+搜索、筛选、另案编辑、新建、取消、主库本地 Esc、自定义 X、native CloseRequested/Alt+F4、window_action(close)、托盘退出都经过同一编辑处理：保存 / 继续编辑 / 放弃。保存或放弃成功才继续原动作，失败留在编辑。关闭需要后端 token 握手；没有确认不销毁，关闭请求未解除时不能新开编辑。快捷面板的队列与全局 Esc 语义保留。
+
+手动保存将正式字段/分类/图片关系与消费草稿置于同一事务；失败保留旧正式记录及草稿。放弃仅删除草稿关系，不物理删除原图。防抖定时器会停止；活动会话、递增 save_seq 和只更新仍存在的草稿共同拒绝迟到写入。未接纳的迟到图片不回填。
+
+schema 2 为 drafts 增加 pending_project_name、dirty，增加 draft_pending_tags 表。已登记分类仍用外键 ID；待登记项目/标签只留草稿输入，正式保存才解析或创建。被删除的已知分类通过外键归一，恢复不从旧显示名重建。迁移 1→2 在事务内执行；B1 exe 正确拒绝打开 schema 2，切回 B1 源码不会降级数据。没有降级、GC 或备份系统。
+
+报告在 reports/b2/；实际 release CSS 检查使用 node scripts/check-ui-build.mjs b2。此为首轮 B2 记录；最终 r2 已获用户验收，自动化进程测试只打开临时目录，不迁移用户 B1 测试库。
+
+## B2 R2：真实时钟与编辑图片胶囊
+
+revision `4.4-b2-r2`。修复 DraftClock 原生方法被错误绑定到实例的 Illegal invocation；默认计时器通过 globalThis 显式调用，保留 600ms 防抖/连续约 2 秒和图片立即暂存。保护状态仍取决于当前序号的 SQLite 确认。此前用户普通卡片状态与该独立时钟缺陷的关系未经确认，不把自动测试结论当作用户那次无恢复事件的根因证明。
+
+CaseEditor 删除图片框外粘贴提示栏；轨道内保留添加入口与精确选择机制。图片仍高 90px、原有宽度不变，右下两图标半透明胶囊常驻（unlink 替换、trash-2 移除），单次编号、细蓝边/圆形对勾选中。参考图拖动显示半透明跟随，其他图 FLIP 让位；本地预览不写草稿，松手才按稳定引用 ID 提交一次。Esc、pointercancel、lostcapture 或 blur 取消，其他 pointerId 不能结束本次拖动；效果图不参与。编辑态箭头点击区缩至中部，不挡底部胶囊；普通卡片和快捷面板不变。
+
+报告 `reports/b2-r2/`；用户于 2026-10-27 确认 r2 测试清单全部通过，见 [公开人工验收记录](../docs/validation/b2-r2/user-acceptance.json)。真实浏览器测试使用实际 CaseEditor/useCaseEditor，并以测试 IPC 接到生产 Store/EditSessions/SQLite；不触碰用户库，原生剪贴板/文件拖入只模拟传输边界。测试程序只强杀自身创建的 Rust worker。
+
+浏览器验证需要现成 Playwright 与 Edge，不是新正式依赖。先用独立 CARGO_TARGET_DIR 编译测试桥，再运行测试；如环境无法按包名解析，通过 PLAYWRIGHT_MODULE 指定现有安装路径：
+
+```powershell
+$env:CARGO_TARGET_DIR = Join-Path $PWD 'src-tauri/target-stage-b2-r2'
+cargo test --manifest-path src-tauri/Cargo.toml --locked --test browser_store --no-run --message-format=json *> reports/b2-r2/browser-bridge-build.jsonl
+pnpm test:browser
+pnpm test:browser:controls
+node scripts/check-ui-build.mjs b2-r2
+```
+
+Vite 测试服务器只监听本机并排除 Rust target/报告目录的扫描；资产请求限定在自建临时目录。所有浏览器运行按时间留独立 JSON，失败记录与成功记录分开。
