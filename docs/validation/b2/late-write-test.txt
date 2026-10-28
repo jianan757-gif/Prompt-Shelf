@@ -1,0 +1,8 @@
+   Compiling prompt-shelf-poc v0.1.0 (<PROJECT>\poc\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.40s
+     Running unittests src\lib.rs (poc\src-tauri\target-stage-b2\debug\deps\prompt_shelf_poc-baa7045bd5adb6f3.exe)
+
+running 1 test
+test drafts::tests::delayed_worker_after_discard_save_and_window_close_cannot_write ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 32 filtered out; finished in 0.11s

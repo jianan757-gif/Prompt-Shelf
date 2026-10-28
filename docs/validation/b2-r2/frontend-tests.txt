@@ -1,0 +1,37 @@
+$ node --experimental-strip-types --test src/search.test.ts src/carousel.test.ts src/session.test.ts src/library/model.test.ts src/library/editor.test.ts src/library/draftSafety.test.ts
+✔ mixed image widths advance to actual boundaries and clamp the final step (0.6351ms)
+✔ empty and nonoverflowing rails have no movable direction (0.619ms)
+✔ fractional boundaries avoid repeated tiny steps and expose only available edges (0.127ms)
+✔ resize and filtered image counts restore a valid saved image boundary (0.0922ms)
+✔ nearest image and rapid requested steps preserve one-image navigation (0.1383ms)
+✔ typing waits 600ms after the last edit (0.7434ms)
+✔ continuous typing persists at 2 seconds and starts a new window (0.1877ms)
+✔ image operations flush immediately and ending an edit cancels scheduled writes (0.1642ms)
+✔ late replacement follows stable reference id after a reorder, not the old index (1.1128ms)
+✔ removed slots, canceled editors and later sessions reject old image receipts (0.6566ms)
+✔ shared assets keep distinct occurrence ids and replacement does not collapse references (0.3383ms)
+✔ image paste detection leaves plain text paste and free comma tag input intact (0.2911ms)
+✔ first-read and focus refresh responses cannot overwrite a newer library change (0.1932ms)
+✔ quick refresh keeps the selected case id across insertions and safely clamps a removed selection (0.7967ms)
+✔ library dates sort by stored timestamps rather than UUID or call count (1.3461ms)
+✔ browse filtering is read only and unmarked catalog tags never become quick tags (0.3638ms)
+✔ explicit name and creation sorts take priority over search relevance (6.981ms)
+✔ column thresholds and source URL policy follow the frozen view contract (0.1672ms)
+✔ AND spans fields and rejects absent terms (0.9288ms)
+✔ title ranks above body and project (0.1592ms)
+✔ dictionary is bidirectional and tabs filter (0.2797ms)
+✔ highlight preserves hostile HTML and regex query literally (0.3422ms)
+✔ same-collection wake preserves query, filters, selection and scroll (0.5563ms)
+✔ hotkey collections restore their own position without clearing search or filters (0.5206ms)
+✔ active Escape cancels and retains panel; active close always hides (0.1003ms)
+✔ early failure waits for request receipt while stale terminal cannot unlock a new call (0.0912ms)
+✔ late nonterminal stages cannot replace the active cancel id or reopen a finished request (0.1253ms)
+✔ pending events are isolated by id and a terminal cannot be overwritten by an earlier stage (0.105ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 255.8797

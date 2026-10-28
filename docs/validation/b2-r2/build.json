@@ -1,0 +1,59 @@
+{
+  "revision": "4.4-b2-r2",
+  "state": "release-built-source-frozen",
+  "frozenAt": "2026-10-27T15:49:00.5449808+08:00",
+  "sourceFiles": 75,
+  "sourceManifestSha256": "d11a2cd4ccdeaba73679bd11d80aacc7ac4aeb7559b1c673ad73b72562e08a50",
+  "targetDirectory": "poc/src-tauri/target-stage-b2-r2",
+  "frontendTestsPassed": 28,
+  "browserCoreChecks": 17,
+  "browserCoreLog": "browser-run-fourth.txt",
+  "browserCoreJson": "browser-run-2026-10-27T07-42-32-665Z.json",
+  "browserControlsChecks": 6,
+  "browserControlsLog": "browser-controls-final.txt",
+  "browserControlsJson": "browser-run-2026-10-27T07-48-18-066Z.json",
+  "testNote": "Core and controls overlap; do not add as independent tests",
+  "typescriptVite": "PASS",
+  "packagedCss": "PASS",
+  "protectedFilesMatchB2": true,
+  "protectedFiles": [
+    "src/App.tsx",
+    "src/library/CaseCard.tsx",
+    "src/ReferenceCarousel.tsx",
+    "src/carousel.css",
+    "src/quick.css",
+    "src/poc.css",
+    "src/session.ts",
+    "src-tauri/src/queue.rs",
+    "src-tauri/src/escape.rs",
+    "src-tauri/src/platform/mod.rs",
+    "src-tauri/src/platform/windows.rs",
+    "src-tauri/src/platform/unsupported.rs"
+  ],
+  "gui": "NOT_RUN_PENDING_USER_ACCEPTANCE",
+  "nativeClipboardDropTransport": "SIMULATED_IN_BROWSER",
+  "osExternalAppBlur": "NOT_RUN_DOM_BLUR_HANDLER_ONLY",
+  "schema": 2,
+  "builtAt": "2026-10-27T15:53:25.081247+08:00",
+  "executables": [
+    {
+      "path": "poc/src-tauri/target-stage-b2-r2/release/prompt-shelf-poc.exe",
+      "bytes": 13794816,
+      "sha256": "fe84bd91b409d95c35e37fbbd89d10c672fda626fa4c61710c372a4caff62c84",
+      "format": "PE32+ x86_64",
+      "subsystem": 2
+    },
+    {
+      "path": "poc/src-tauri/target-stage-b2-r2/release/prompt-shelf-store.exe",
+      "bytes": 3107328,
+      "sha256": "610258b1362a6b89565625efd9308a842830b49037da7e5671cd21808cb72e3e",
+      "format": "PE32+ x86_64",
+      "subsystem": 3
+    }
+  ],
+  "sourceManifestAfterBuildMatches": true,
+  "historicalReleasesUnchanged": true,
+  "windowsRelease": "PASS windows-release.txt",
+  "cliRelease": "PASS cli-release.txt",
+  "packagedCssFinal": "PASS check-ui-build-final.txt"
+}

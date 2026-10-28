@@ -69,7 +69,7 @@ fn empty_library_reopens_and_configuration_is_explicit() {
             |r| r.get::<_, i64>(0)
         )
         .unwrap(),
-        11
+        12
     );
     drop(c);
     drop(first);

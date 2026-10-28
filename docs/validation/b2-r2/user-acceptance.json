@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-27",
+  "stage": "4.4 B2 r2",
+  "result": "PASS_USER_REPORTED",
+  "method": "User manual Windows acceptance reported in this conversation",
+  "userStatement": "已全部通过测试",
+  "scope": [
+    "图片编辑区视觉",
+    "参考图拖动排序及取消",
+    "图片替换、移除、共享引用与导入",
+    "自动草稿状态",
+    "强制结束后草稿恢复与正式数据隔离",
+    "关闭/取消/切换拦截、快捷面板同步及文本/图片粘贴回归"
+  ],
+  "buildReference": "build.json (delivered r2 build; not a newly collected execution fingerprint)",
+  "limits": [
+    "No additional automated test run for submission",
+    "No new per-target-application compatibility matrix",
+    "Process termination is not a real power-loss test",
+    "Historical automated reports retain their original NOT_RUN and SIMULATED labels"
+  ],
+  "next": "Development branch review only; do not begin stage C"
+}

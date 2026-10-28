@@ -1,0 +1,8 @@
+{
+  "date": "2026-10-28",
+  "status": "Tauri production build passed; real CaseEditor browser hover/press checks passed; Windows user acceptance pending",
+  "command": "node node_modules/@tauri-apps/cli/tauri.js build --no-bundle --config (Node frontend build override) -- --locked",
+  "exe": "poc/src-tauri/target-stage-b2-r2/release/prompt-shelf-poc.exe",
+  "sha256": "3E3388861EB97E950931CEC1E66252A6ADBAA7FE9F199686F52980F8418E8B18",
+  "dataChanged": false
+}

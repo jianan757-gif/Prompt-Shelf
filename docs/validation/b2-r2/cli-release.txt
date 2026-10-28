@@ -1,0 +1,8 @@
+   Compiling tauri v2.12.5
+   Compiling tauri-macros v2.7.4
+   Compiling tauri-plugin-fs v2.7.1
+   Compiling tauri-plugin-global-shortcut v2.4.1
+   Compiling tauri-plugin-dialog v2.8.3
+   Compiling prompt-shelf-poc v0.1.0 (<PROJECT>\poc\src-tauri)
+   Compiling tauri-plugin-single-instance v2.5.4
+    Finished `release` profile [optimized] target(s) in 21.77s

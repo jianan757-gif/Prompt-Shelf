@@ -1,5 +1,7 @@
-// Static SVG paths copied from frozen V4.11; never supplied by library content.
+// Static SVG paths from frozen V4.11 and approved image controls; never supplied by library content.
 const paths={
+  "unlink": '<path d="m18.84 12.25 1.72-1.71a6 6 0 0 0-8.49-8.49l-1.71 1.71M5.16 11.75l-1.72 1.71a6 6 0 0 0 8.49 8.49l1.71-1.71M8 2v3M2 8h3M16 19v3M19 16h3"/>',
+  "trash-2": '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>',
   "book": "<path d=\"M12 6.4c-2.4-1.9-5.4-2.1-8.5-1.5v12.4c3.3-.6 6.2-.3 8.5 1.7m0-12.6c2.4-1.9 5.4-2.1 8.5-1.5v12.4c-3.3-.6-6.2-.3-8.5 1.7m0-12.6V19\"/>",
   "archive": "<rect x=\"3.5\" y=\"4.5\" width=\"17\" height=\"5\" rx=\"1.6\"/><path d=\"M5.5 9.5v9.2c0 .9.7 1.6 1.6 1.6h9.8c.9 0 1.6-.7 1.6-1.6V9.5M9.5 13.5h5\"/>",
   "plus": "<path d=\"M12 5v14M5 12h14\"/>",

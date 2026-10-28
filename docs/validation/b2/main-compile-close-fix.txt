@@ -1,0 +1,3 @@
+   Compiling prompt-shelf-poc v0.1.0 (<PROJECT>\poc\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.62s
+  Executable unittests src\main.rs (poc\src-tauri\target-stage-b2\debug\deps\prompt_shelf_poc-89b34ed843601f27.exe)

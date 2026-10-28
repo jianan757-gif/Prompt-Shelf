@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-27",
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "bounded localhost HTTP probe confirms test middleware responds",
+      "result": "PASS"
+    },
+    {
+      "name": "real browser default DraftClock schedules and clears without Illegal invocation",
+      "result": "PASS"
+    },
+    {
+      "name": "actual CaseEditor preserves geometry, two icon capsules and no external paste toolbar",
+      "result": "PASS",
+      "widths": [
+        {
+          "width": 90,
+          "height": 90
+        },
+        {
+          "width": 135,
+          "height": 90
+        },
+        {
+          "width": 60,
+          "height": 90
+        },
+        {
+          "width": 90,
+          "height": 90
+        },
+        {
+          "width": 117,
+          "height": 90
+        }
+      ]
+    },
+    {
+      "name": "decoded image ghost follows at 65 percent opacity and cancel preserves editor order",
+      "result": "PASS"
+    },
+    {
+      "name": "narrow rail trash receives click within former 34px right-edge hotspot",
+      "result": "PASS"
+    },
+    {
+      "name": "plain-text paste remains unprevented and creates no image import",
+      "result": "PASS"
+    }
+  ],
+  "error": null,
+  "pageErrors": [],
+  "temporaryDirectory": "<ISOLATED_TEMP_LIBRARY>",
+  "transport": "Real React and browser timers; test IPC bridge uses production Store/EditSessions/SQLite. Native OS clipboard/window/drag transport is not tested."
+}

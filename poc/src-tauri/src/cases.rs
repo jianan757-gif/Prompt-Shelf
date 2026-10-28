@@ -119,8 +119,11 @@ impl Store {
         }
         Ok(document)
     }
-    /// One metadata transaction. No file deletion, favorite/use update, or persistent draft.
+    /// One metadata transaction. No file deletion or favorite/use update.
     pub fn commit_case(&self, document: &CaseDocument) -> Result<SavedCase, String> {
+        self.commit_case_consuming(document, None)
+    }
+    pub(crate) fn commit_case_consuming(&self, document: &CaseDocument, draft_id: Option<&str>) -> Result<SavedCase, String> {
         if document.title.trim().is_empty() {
             return Err("case_title_required".into());
         }
@@ -140,6 +143,10 @@ impl Store {
         let tx = connection
             .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
             .map_err(sql)?;
+        if let Some(id) = draft_id {
+            let valid: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM drafts WHERE id=?1 AND coalesce(case_id,id)=?2 AND base_revision=?3)", params![id,document.id,i64::try_from(document.base_revision).map_err(|_|"revision_overflow")?], |r|r.get(0)).map_err(sql)?;
+            if !valid { return Err("draft_ended_or_mismatched".into()); }
+        }
         let current: Option<(i64, Option<i64>)> = tx
             .query_row(
                 "SELECT edit_revision,deleted_at FROM cases WHERE id=?1",
@@ -219,6 +226,7 @@ impl Store {
                 .map_err(sql)?;
             }
         }
+        if let Some(id) = draft_id { tx.execute("DELETE FROM drafts WHERE id=?1",[id]).map_err(sql)?; }
         tx.commit().map_err(sql)?;
         Ok(SavedCase {
             id: document.id.clone(),
@@ -244,13 +252,16 @@ impl Store {
 pub struct EditReceipt {
     pub session_id: String,
     pub document: CaseDocument,
+    pub draft_id: Option<String>,
+    pub save_seq: u64,
 }
 #[derive(Default)]
 pub struct EditSessions {
-    current: std::sync::Mutex<Option<(String, String, u64)>>,
+    pub(crate) current: std::sync::Mutex<Option<(String, String, u64, Option<String>)>>,
     epoch: std::sync::atomic::AtomicU64,
 }
 impl EditSessions {
+    pub(crate) fn invalidate_epoch(&self) { self.epoch.fetch_add(1, std::sync::atomic::Ordering::AcqRel); }
     pub fn epoch(&self) -> u64 {
         self.epoch.load(std::sync::atomic::Ordering::Acquire)
     }
@@ -267,10 +278,13 @@ impl EditSessions {
             session_id.clone(),
             document.id.clone(),
             document.base_revision,
+            None,
         ));
         Ok(EditReceipt {
             session_id,
             document,
+            draft_id: None,
+            save_seq: 0,
         })
     }
     pub fn check(&self, token: &str) -> Result<(), String> {
@@ -313,7 +327,7 @@ impl EditSessions {
         }) {
             return Err("edit_session_expired_or_mismatched".into());
         }
-        let saved = store.commit_case(document)?;
+        let saved = store.commit_case_consuming(document, slot.as_ref().and_then(|s|s.3.as_deref()))?;
         *slot = None;
         self.epoch.fetch_add(1, std::sync::atomic::Ordering::AcqRel);
         Ok(saved)
