@@ -1,0 +1,199 @@
+{
+  "date": "2026-10-28",
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "bounded localhost HTTP probe confirms test middleware responds",
+      "result": "PASS"
+    },
+    {
+      "name": "real browser default DraftClock schedules and clears without Illegal invocation",
+      "result": "PASS"
+    },
+    {
+      "name": "actual CaseEditor preserves geometry, numbered floating dock and no external paste toolbar",
+      "result": "PASS",
+      "widths": [
+        {
+          "width": 90,
+          "height": 90
+        },
+        {
+          "width": 135,
+          "height": 90
+        },
+        {
+          "width": 60,
+          "height": 90
+        },
+        {
+          "width": 90,
+          "height": 90
+        },
+        {
+          "width": 117,
+          "height": 90
+        }
+      ]
+    },
+    {
+      "name": "13px dock icons, 65 percent white background, inset separators and red removal hover",
+      "result": "PASS",
+      "dockMetrics": [
+        {
+          "background": "rgba(255, 255, 255, 0.65)",
+          "icons": [
+            [
+              13,
+              13
+            ],
+            [
+              13,
+              13
+            ]
+          ],
+          "inset": "4px",
+          "line": "1px"
+        },
+        {
+          "background": "rgba(255, 255, 255, 0.65)",
+          "icons": [
+            [
+              13,
+              13
+            ],
+            [
+              13,
+              13
+            ]
+          ],
+          "inset": "4px",
+          "line": "1px"
+        },
+        {
+          "background": "rgba(255, 255, 255, 0.65)",
+          "icons": [
+            [
+              13,
+              13
+            ],
+            [
+              13,
+              13
+            ]
+          ],
+          "inset": "4px",
+          "line": "1px"
+        },
+        {
+          "background": "rgba(255, 255, 255, 0.65)",
+          "icons": [
+            [
+              13,
+              13
+            ],
+            [
+              13,
+              13
+            ]
+          ],
+          "inset": "4px",
+          "line": "1px"
+        },
+        {
+          "background": "rgba(255, 255, 255, 0.65)",
+          "icons": [
+            [
+              13,
+              13
+            ],
+            [
+              13,
+              13
+            ]
+          ],
+          "inset": "4px",
+          "line": "1px"
+        }
+      ]
+    },
+    {
+      "name": "actual React waits about 600ms; protection requires SQLite acknowledgment",
+      "result": "PASS",
+      "delayMs": 618
+    },
+    {
+      "name": "actual React continuously typed input reaches SQLite near 2 seconds",
+      "result": "PASS",
+      "firstWriteMs": 2012
+    },
+    {
+      "name": "drag preview shifts siblings with animation but no SQLite; Escape restores without card cancellation",
+      "result": "PASS"
+    },
+    {
+      "name": "foreign pointer cannot end drag; matching pointercancel restores without commit",
+      "result": "PASS"
+    },
+    {
+      "name": "window blur cancels drag; subsequent pointerup cannot commit",
+      "result": "PASS",
+      "actualHeadlessTabBlur": false,
+      "osAppSwitch": "NOT_TESTED"
+    },
+    {
+      "name": "release commits one stable-ID reorder to SQLite; effect image stays fixed",
+      "result": "PASS"
+    },
+    {
+      "name": "narrow overflowing editor rail scrolls during preview without reset; ghost is outside viewport",
+      "result": "PASS",
+      "scrollLeft": 72
+    },
+    {
+      "name": "effect image never starts a reorder",
+      "result": "PASS"
+    },
+    {
+      "name": "capsule buttons do not initiate dragging; replacement retains stable reference ID",
+      "result": "PASS"
+    },
+    {
+      "name": "remove invalidates late replacement receipt and selection; shared formal case unchanged",
+      "result": "PASS"
+    },
+    {
+      "name": "actual hook image paste routes selected stable target (native clipboard transport simulated)",
+      "result": "PASS"
+    },
+    {
+      "name": "actual hook native-drop event routes selected image slot (OS drag transport simulated)",
+      "result": "PASS"
+    },
+    {
+      "name": "plain-text paste remains unprevented and creates no image import",
+      "result": "PASS"
+    },
+    {
+      "name": "narrow rail trash receives the actual click under the former right-edge hotspot",
+      "result": "PASS"
+    },
+    {
+      "name": "acknowledged real React input survives killed SQLite worker/reopen; formal A unchanged",
+      "result": "PASS"
+    },
+    {
+      "name": "incomplete new draft also survives process kill and recovers only as editor",
+      "result": "PASS"
+    },
+    {
+      "name": "no uncaught browser errors across actual React/editor runs",
+      "result": "PASS"
+    }
+  ],
+  "error": null,
+  "pageErrors": [],
+  "temporaryDirectory": "<ISOLATED_TEST_LIBRARY>",
+  "transport": "Real React and browser timers; test IPC bridge uses production Store/EditSessions/SQLite. Native OS clipboard/window/drag transport is not tested.",
+  "evidenceNote": "Copied from poc\\reports\\b2-r2\\browser-run-2026-10-28T07-06-19-280Z.json; original harness date was hardcoded 2026-10-27. Execution date is in source filename. Harness now uses Asia/Shanghai runtime date."
+}

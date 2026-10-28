@@ -412,21 +412,26 @@ html[data-window="library"],html[data-window="library"] body,#root{height:100%;w
 .v50-modal .v50-list strong{font-size:17px;display:block}.v50-modal .v50-list span{font-size:11px;color:#8594a7}
 .v50-modal .v50-warning{font-size:11px;color:#9b6c49;background:#fff8ef;border-radius:7px;padding:9px 10px;margin:8px 0}
 .v50-modal .v50-positive{font-size:11px;color:#507a5e;background:#eef8f0;border-radius:7px;padding:9px 10px;margin:8px 0}
-/* Approved image capsule; scoped to editing, leaving browse cards and quick panel intact. */
+/* Approved floating image dock; scoped to editing, leaving browse cards and quick panel intact. */
 .library-root .case.editing .editor-thumb{position:relative;height:90px;min-height:90px;overflow:hidden;border:1px solid #e1e7ef;border-radius:7px;outline:none;box-shadow:none;flex:none;user-select:none}
 .library-root .case.editing .editor-thumb.selected{border-color:#315fff;outline:none;box-shadow:none}
 .library-root .case.editing .editor-thumb.selected::before{content:none}
 .library-root .case.editing .editor-image-select{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;background:transparent;color:inherit;touch-action:none;cursor:grab;border-radius:6px}
 .library-root .case.editing .result-pic .editor-image-select{cursor:default}
 .library-root .case.editing .editor-image-select:focus-visible{outline:1px solid #315fff;outline-offset:-2px}
-.editor-thumb .editor-image-number{position:absolute;top:4px;left:4px;font:11px/1.4 'Segoe UI','Microsoft YaHei',sans-serif;padding:1px 4px;border-radius:4px;background:#ffffffe8;color:#304158;pointer-events:none}
+.editor-thumb .editor-image-number{flex:1;min-width:0;padding:0 3px;font:10px/1.4 'Segoe UI','Microsoft YaHei',sans-serif;color:#374151;white-space:nowrap;text-shadow:none;pointer-events:none}
 .editor-thumb .editor-image-check{position:absolute;top:4px;right:4px;width:16px;height:16px;display:none;align-items:center;justify-content:center;border-radius:50%;background:#315fff;color:white;pointer-events:none}
 .editor-thumb.selected .editor-image-check{display:flex}
-.library-root .case.editing .editor-image-tools{position:absolute;right:4px;bottom:4px;width:min(60px,calc(100% - 8px));height:30px;display:flex;align-items:stretch;padding:2px;border-radius:9px;background:#ffffffb8;box-shadow:0 2px 7px #182d3718}
-.library-root .case.editing .editor-image-tools button{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:6px;background:transparent;color:#304158}
-.library-root .case.editing .editor-image-tools svg{width:16px;height:16px;pointer-events:none}
-.library-root .case.editing .editor-image-tools button:hover{background:#eaf0ff;color:#315fff}
-.library-root .case.editing .editor-image-tools button:last-child:hover{background:#fff0f0;color:#bd444c}
+.library-root .case.editing .editor-image-tools{position:absolute;left:0;right:0;bottom:0;height:24px;display:flex;align-items:center;padding:0;border:0;border-radius:0;background:rgb(255 255 255 / 65%);box-shadow:none;pointer-events:none}
+.library-root .case.editing .editor-image-tools button{position:relative;flex:0 0 24px;width:24px;height:24px;min-width:0;display:flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:0;background:transparent;color:#374151;pointer-events:auto}
+.library-root .case.editing .editor-image-tools button::before{content:"";position:absolute;left:0;top:5px;bottom:5px;width:1px;background:rgb(55 65 81 / 20%);pointer-events:none}
+.library-root .case.editing .editor-image-tools button::after{content:"";position:absolute;inset:2px 3px 2px 4px;border-radius:3px;background:transparent;pointer-events:none;transition:background 140ms}
+.library-root .case.editing .editor-image-tools svg{position:relative;z-index:1;width:13px;height:13px;filter:none;pointer-events:none}
+.library-root .case.editing .editor-image-tools button:hover:not(:disabled)::after{background:rgb(255 255 255 / 85%)}
+.library-root .case.editing .editor-image-tools button:last-child:hover:not(:disabled)::after{background:rgb(220 38 38 / 85%)}
+.library-root .case.editing .editor-image-tools button:last-child:hover:not(:disabled){color:white}
+.library-root .case.editing .editor-image-tools button:not(:last-child):is(:hover,:active):not(:disabled)::after{background:rgb(49 95 255 / 85%);transition:none}
+.library-root .case.editing .editor-image-tools button:not(:last-child):is(:hover,:active):not(:disabled){color:white}
 .library-root .case.editing .editor-media .reference-track{position:relative}
 .library-root .case.editing .editor-thumb.is-dragging{border:1px dashed #315fff;background:#edf2ff}
 .library-root .case.editing .editor-thumb.is-dragging>*{opacity:0}
@@ -434,6 +439,6 @@ html[data-window="library"],html[data-window="library"] body,#root{height:100%;w
 .editor-drag-ghost{position:fixed;left:0;top:0;height:90px;z-index:9997;opacity:.65;pointer-events:none;box-shadow:0 8px 20px #16263c35;border:1px solid #315fff;border-radius:7px;overflow:hidden;will-change:transform;box-sizing:border-box}
 .editor-drag-ghost .thumb-art,.editor-drag-ghost .thumb-art img{width:100%;height:100%;display:block;object-fit:contain}
 @media(prefers-reduced-motion:reduce){.library-root .case.editing .editor-thumb{scroll-behavior:auto}}
-/* Editor-only edge hit areas leave the bottom capsule clickable, including narrow rails. */
+/* Editor-only edge hit areas leave the bottom dock clickable, including narrow rails. */
 .library-root .case.editing .editor-media .reference-edge{top:26px;bottom:auto;height:28px}
 .library-root .case.editing .editor-media .reference-arrow{pointer-events:none}
