@@ -1,0 +1,18 @@
+17:23:09 [vite] (client) Re-optimizing dependencies because vite config has changed
+PASS actual React windows load lightweight schema-2 index and on-demand image batches
+PASS catalog project and tag creation uses actual panel controls
+PASS quick-tag persisted order is shared by sidebar, main toolbar and quick panel
+PASS accepted 13px editing dock and actual images remain intact
+PASS stable project filter survives rename without losing case relationship
+PASS category rename waits editor guard; continue preserves text, discard resolves before mutation
+FAVORITE_POINTER_RECT {"before":{"x":519.125,"y":362.15625,"width":13.875,"height":17},"after":{"x":519.125,"y":362.15625,"width":13.875,"height":17}}
+PASS favorite synchronizes across real React windows and survives an older content draft save
+PASS dictionary failure retains editor input; saved synonyms immediately affect quick-window search
+PASS layout and interval preferences persist through window reload
+PASS usage snapshot keeps current quick order, selected ID and scroll; explicit collection click applies new sort
+PASS bulk deletion removes tag relations and both quick lists but preserves cases and images
+PASS single project deletion detaches case without deleting content
+PASS schema-2 metadata, dictionary, preferences and usage survive process restart with no browser errors
+PASS main library mounts 60 cases then sentinel loads next batch
+PASS quick panel retains first-50 cap with accurate total
+PASS explicit cross-tab changes restore each destination selected ID and scroll instead of source selection

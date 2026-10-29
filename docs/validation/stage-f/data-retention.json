@@ -1,0 +1,60 @@
+{
+  "method": "Actual NSIS current-user install/upgrade/uninstall/reinstall under dedicated test identity; E CLI seed, F CLI checks, read-only SQL logical and original byte fingerprints",
+  "testIdentifier": "io.github.promptshelf.stagef.validation",
+  "realUserLibrary": "NOT_OPENED",
+  "counts": {
+    "assets": 500,
+    "case_assets": 501,
+    "case_tags": 200,
+    "cases": 100,
+    "draft_assets": 5,
+    "draft_pending_tags": 0,
+    "draft_tags": 2,
+    "drafts": 1,
+    "projects": 7,
+    "settings": 0,
+    "synonym_groups": 0,
+    "tags": 6
+  },
+  "contentSha256": "563d0552843fc791cc49b83a6ff7e6c87a468374fa22a484a1b1012f5ff93a3c",
+  "originalManifestSha256": "3D8F46B2DCC5C8E6ADDCAF72D0CE15727C7188F8BB8DCED1233D7939C2AEE770",
+  "steps": [
+    {
+      "step": "after-old-install",
+      "schema": 2,
+      "integrity": "ok",
+      "foreignKeyErrors": 0,
+      "contentSha256": "563d0552843fc791cc49b83a6ff7e6c87a468374fa22a484a1b1012f5ff93a3c",
+      "originalFiles": 500,
+      "identical": true
+    },
+    {
+      "step": "after-upgrade",
+      "schema": 2,
+      "integrity": "ok",
+      "foreignKeyErrors": 0,
+      "contentSha256": "563d0552843fc791cc49b83a6ff7e6c87a468374fa22a484a1b1012f5ff93a3c",
+      "originalFiles": 500,
+      "identical": true
+    },
+    {
+      "step": "after-uninstall",
+      "schema": 2,
+      "integrity": "ok",
+      "foreignKeyErrors": 0,
+      "contentSha256": "563d0552843fc791cc49b83a6ff7e6c87a468374fa22a484a1b1012f5ff93a3c",
+      "originalFiles": 500,
+      "identical": true
+    },
+    {
+      "step": "after-reinstall",
+      "schema": 2,
+      "integrity": "ok",
+      "foreignKeyErrors": 0,
+      "contentSha256": "563d0552843fc791cc49b83a6ff7e6c87a468374fa22a484a1b1012f5ff93a3c",
+      "originalFiles": 500,
+      "identical": true
+    }
+  ],
+  "limits": "Old version package uses F source with 0.1.0 config, not a historical E installer. E had no installer. Interactive deletion checkbox not clicked; hook order checked statically."
+}

@@ -1,0 +1,142 @@
+   Compiling prompt-shelf-poc v0.2.0-beta.1 (<repo>\poc\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 37.32s
+     Running unittests src\lib.rs (poc\src-tauri\target-stage-e\debug\deps\prompt_shelf_poc-c79b746c5bccc831.exe)
+
+running 81 tests
+test backup::tests::zip64_entry_option_writes_zip64_local_header_without_allocating_multi_gigabyte_fixture ... ok
+test cases::tests::source_normalization_uses_http_https_and_idn ... ok
+test backup::tests::cancellation_and_commit_have_one_atomic_winner ... ok
+test cases::tests::memory_sessions_do_not_revive_after_cancel_or_close_and_errors_keep_editing ... ok
+test cases::tests::new_save_catalogs_cancel_and_reopen_are_transactional ... ok
+test catalog::tests::bulk_validates_all_ids_and_rolls_back_fk_changes_on_actual_sql_failure ... ok
+test cases::tests::sql_failure_after_field_catalog_and_relation_changes_rolls_everything_back ... ok
+test backup::tests::restore_space_and_streamed_actual_bytes_are_bounded_and_cancellation_cleans_preview ... ok
+test cases::tests::missing_original_or_unknown_asset_never_saves_formal_case ... ok
+test catalog::tests::favorite_is_immediate_and_draft_save_does_not_overwrite_it ... ok
+test clipboard_input::tests::clipboard_dib_converts_without_clipboard_or_system_input ... ok
+test clipboard_input::tests::clipboard_png_padding_is_not_saved_as_image_data ... ok
+test closing::tests::delivery_failure_unlocks_editing_but_cannot_undo_claimed_close ... ok
+test closing::tests::finishing_rejects_cancel_and_failure_clears_request_for_retry ... ok
+test closing::tests::pending_close_blocks_new_epoch_until_user_continues ... ok
+test closing::tests::repeated_requests_escalate_exit_and_failed_ack_keeps_request ... ok
+test backup::tests::publishing_has_crossed_the_atomic_cancel_boundary_before_final_file_appears ... ok
+test cases::tests::shared_images_reference_ids_and_reorder_preserve_other_case_and_originals ... ok
+test data::tests::aliases_match_controller_schema ... ok
+test data::tests::no_absolute_or_traversal ... ok
+test backup::tests::duplicate_central_entry_is_not_hidden_by_zip_index_coalescing ... ok
+test backup::tests::restore_rejects_corrupt_zip_traversal_absolute_case_alias_and_symlink_entries ... ok
+test backup::tests::restored_v1_runs_only_application_migration_in_temporary_database ... ok
+test backup::tests::existing_destination_and_cancelled_export_do_not_publish_or_replace ... ok
+test catalog::tests::preferences_and_dictionary_validate_atomically_and_reopen_including_empty_dictionary ... ok
+test catalog::tests::quick_order_is_one_persisted_source_and_rejects_stale_or_duplicate_sets ... ok
+test cases::tests::stale_save_and_stale_quick_index_are_rejected_without_changing_usage ... ok
+test catalog::tests::rename_and_delete_preserve_formal_and_draft_id_relations_without_resurrection ... ok
+test catalog::tests::previously_unresolved_names_follow_registration_rename_and_delete ... ok
+test catalog::tests::rename_to_pending_name_binds_once_and_preserves_earliest_draft_position ... ok
+test drafts::tests::draft_write_rollback_session_epoch_and_close_do_not_resurrect ... ok
+test drafts::tests::conflict_deleted_target_and_explicit_as_new_never_overwrite ... ok
+test drafts::tests::incomplete_draft_catalog_inputs_and_deleted_bound_categories ... ok
+test catalog::tests::index_never_decodes_images_and_asset_batches_only_include_requested_live_cases ... ok
+test drafts::tests::save_and_discard_failures_preserve_formal_draft_session_and_close_guard ... ok
+test backup::tests::round_trip_online_snapshot_carries_live_trash_draft_config_and_unique_originals_without_online_cleanup ... ok
+test drafts::tests::new_case_failed_commit_and_draft_image_reorder_keep_shared_original ... ok
+test gc::tests::imported_asset_is_pinned_through_unattached_and_discarded_draft_then_collected_on_reopen ... ok
+test gc::tests::cleanup_failure_retains_pending_row_and_retries_after_partial_file_removal ... ok
+test paths::tests::local_files_allow_new_files_and_reject_dangling_links_when_supported ... ok
+test gc::tests::clipboard_alias_unknown_and_unreadable_paths_conservatively_retain ... ok
+test gc::tests::live_trash_and_draft_relations_protect_without_import_pins ... ok
+test storage_host::tests::existing_flat_zero_version_database_is_never_initialized_even_with_orphan_assets ... ok
+test gc::tests::missing_candidate_file_is_rebuilt_by_same_hash_import_and_returns_live_reference ... ok
+test drafts::tests::migration_v1_to_v2_and_failed_upgrade_are_atomic ... ok
+test gc::tests::stale_pending_state_and_missing_file_never_override_a_current_draft_reference ... ok
+test gc::tests::manifest_prepare_and_gc_share_the_same_resource_coordinator ... ok
+test storage_host::tests::switch_interruption_worker ... ok
+test gc::tests::gc_rejects_managed_directory_replaced_by_link_when_supported ... ok
+test gc::tests::windows_open_original_retains_pending_on_unlink_failure_then_retries ... ok
+test gc::tests::output_snapshot_keeps_original_after_case_delete_and_queue_cancellation_until_reopen ... ok
+test storage_host::tests::maintenance_barrier_waits_for_in_flight_import_write_and_rejects_late_old_generation ... ok
+test drafts::tests::delayed_worker_after_discard_save_and_window_close_cannot_write ... ok
+test storage_host::tests::pointed_zero_version_database_is_rejected_without_initializing_it ... ok
+test storage_host::tests::bad_active_falls_back_to_verified_previous_with_new_generation_and_bad_both_never_create_empty ... ok
+test store::tests::empty_library_reopens_and_configuration_is_explicit ... ok
+test backup::tests::restore_rejects_missing_hash_mismatch_future_unknown_schema_and_summary_without_touching_live ... ok
+test store::tests::future_or_unversioned_database_is_not_overwritten_and_failed_migration_rolls_back ... ok
+test store::tests::jpeg_exif_orientation_and_icc_are_preserved_in_independent_preview ... ok
+test data::tests::controller_fixtures_load_100_cases_500_assets_and_hashes ... ok
+test storage_host::tests::root_lease_excludes_second_entry_and_flat_library_is_never_moved ... ok
+test store::tests::foreign_keys_results_and_draft_protection_enforced_by_sqlite ... ok
+test store::tests::failed_image_batch_never_commits_partial_cases_or_assets ... ok
+test store::tests::paths_reject_absolute_traversal_cache_original_and_bad_hash ... ok
+test storage_host::tests::generations_maintenance_and_revision_gate_all_operations ... ok
+test usage::tests::partially_cancelled_request_still_counts_and_error_does_not_retry_or_replay ... ok
+test usage::tests::zero_dispatch_does_not_record_and_every_later_phase_records_only_once ... ok
+test store::tests::failed_sql_batch_rolls_back_after_ready_files_and_prior_case_inserts ... ok
+test store::tests::store_lifetime_lock_excludes_second_owner_and_releases_on_drop ... ok
+test trash::tests::all_related_drafts_require_explicit_resolution_before_delete ... ok
+test storage_host::tests::switch_closes_old_database_but_retains_originals_drafts_and_flat_rollback ... ok
+test trash::tests::deleted_project_name_survives_project_removal_and_reopen_then_restores_independent ... ok
+test trash::tests::soft_delete_and_restore_reuse_persisted_content_and_relationships ... ok
+test trash::tests::permanent_delete_failure_rolls_back_case_and_reference_changes ... ok
+test store::tests::readonly_projection_exposes_existing_dates_source_and_catalog_state ... ok
+test trash::tests::shared_count_uses_other_case_entities_including_trash_but_not_drafts ... ok
+test store::tests::shared_original_references_uuid_dtos_and_reopen_are_lossless ... ok
+test store::tests::missing_or_corrupt_thumbnails_rebuild_only_from_matching_original ... ok
+test storage_host::tests::ordinary_errors_at_both_pointer_checkpoints_leave_runtime_and_disk_on_old_library ... ok
+test storage_host::tests::killed_worker_at_real_pointer_boundaries_reopens_a_complete_old_or_new_library ... ok
+test gc::tests::importer_and_gc_serialize_across_file_prepare_registration_and_late_case_attachment ... ok
+
+test result: ok. 81 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.49s
+
+     Running unittests src\main.rs (poc\src-tauri\target-stage-e\debug\deps\prompt_shelf_poc-0871287ece9036f7.exe)
+
+running 40 tests
+test escape::tests::one_held_escape_cancels_without_later_hiding_idle_panel ... ok
+test escape::tests::registration_failure_is_explicit_and_local_fallback_is_one_press ... ok
+test escape::tests::repeated_wake_does_not_reset_a_held_cancel_press ... ok
+test escape::tests::unregister_failure_cannot_mark_panel_hidden_or_release_ownership ... ok
+test platform::windows::tests::only_attached_quick_panel_preserves_target ... ok
+test platform::windows::tests::only_exact_quick_or_external_target_can_transition ... ok
+test platform::windows::tests::text_is_full_utf16_with_terminator ... ok
+test editing::tests::replacement_is_single_and_append_can_be_multiple ... ok
+test escape::tests::job_completion_does_not_release_visible_session_escape ... ok
+test platform::windows::tests::activation_pending_accepts_only_panel_null_or_original_target ... ok
+test platform::windows::tests::dib_headers_alpha_and_bottom_up ... ok
+test catalog_commands::tests::command_window_is_required ... ok
+test platform::windows::tests::png_original_bytes_and_persistent_hdrop ... ok
+test queue::tests::cancel_on_write_boundary_no_dispatch ... ok
+test queue::tests::single_guard_all_request_kinds_until_release ... ok
+test queue::tests::closed_during_wait_stops_remainder ... ok
+test queue::tests::focus_switched_at_restore_event_never_restores_or_sends ... ok
+test queue::tests::restored_native_refocus_cancels_but_initial_activation_notification_does_not ... ok
+test trash_commands::tests::trash_requires_main_library ... ok
+test queue::tests::panel_refocus_after_send_stops_queue_without_restoring_again ... ok
+test queue::tests::focus_switched_does_not_restore_again ... ok
+test queue::tests::refusal_closed_clipboard_and_prepare_never_send ... ok
+test queue::tests::concurrent_cancel_is_linearized_with_dispatch ... ok
+test wake_policy_tests::capture_errors_only_preserve_exact_quick_panel ... ok
+test queue::tests::six_in_order_one_restore_and_truthful_done ... ok
+test queue::tests::third_party_during_activation_wait_rejects_without_retry ... ok
+test queue::tests::cancellation_during_activation_wait_is_prompt_and_never_sends ... ok
+test queue::tests::cancel_second_send_stops_remainder ... ok
+test queue::tests::cancel_during_prepare_waits_worker_and_no_send ... ok
+test queue::tests::third_party_during_first_preparation_never_activates_or_sends ... ok
+test queue::tests::visible_panel_continuous_calls_keep_target_and_do_not_refocus_panel ... ok
+test backup_commands::tests::dropped_waiter_and_cancel_do_not_release_job_or_maintenance_before_worker_ends ... ok
+test backup_commands::tests::maintenance_waits_for_reserved_queue_and_allows_only_ongoing_writes ... ok
+test trash_queue_tests::trash_gate_rejects_active_or_late_editor_and_deleted_cases_cannot_start_new_output ... ok
+test usage_queue_tests::catalog_gate_rejects_active_editor_and_late_writes_after_success_cannot_revive_names ... ok
+test wake_policy_tests::sqlite_snapshot_feeds_existing_text_and_original_image_preparation ... ok
+test queue::tests::activation_timeout_never_hides_writes_or_retries ... ok
+test backup_commands::tests::committed_restore_keeps_success_and_replays_cleanup_warning_with_log ... ok
+test usage_queue_tests::real_queue_counts_only_first_success_even_after_cancel_and_never_replays_on_record_error ... ok
+test trash_queue_tests::deleting_source_during_real_queue_preserves_snapshot_files_after_completion_and_cancel ... ok
+
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.99s
+
+     Running tests\scope_refresh.rs (poc\src-tauri\target-stage-e\debug\deps\scope_refresh-03488772391aacaa.exe)
+
+running 2 tests
+test retirement_tests::retiring_old_grants_preserves_new_library_granted_before_reinitialized_event ... ok
+test incremental_import_deduplicates_and_refresh_scope_grants_only_thumbnails ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s

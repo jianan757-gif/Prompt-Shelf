@@ -32,7 +32,7 @@ use tauri::{
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 type Target = <NativePlatform as PastePlatform>::Target;
-const BUILD_REVISION: &str = "4.4-e";
+const BUILD_REVISION: &str = "4.4-f";
 struct Runtime {
     platform: Arc<NativePlatform>,
     queue: Arc<queue::Queue>,
@@ -187,7 +187,7 @@ fn get_boot(window: tauri::WebviewWindow, state: tauri::State<Runtime>) -> Resul
     };
     let session = state.escape.lock().unwrap();
     let context=state.host.context()?;
-    Ok(serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-e","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"libraryRevision":context.revision,"generation":context.generation,"escapeRegistered":session.registered,"escapeError":session.error}))
+    Ok(serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-f","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"libraryRevision":context.revision,"generation":context.generation,"escapeRegistered":session.registered,"escapeError":session.error}))
 }
 #[tauri::command]
 async fn search_ready(
@@ -282,7 +282,7 @@ fn create_library(app: &tauri::AppHandle) -> Result<(), String> {
         "library_manager",
         WebviewUrl::App("index.html?window=library".into()),
     )
-    .title("Prompt Shelf · 素材资料库")
+    .title(format!("Prompt Shelf {} · 素材资料库",env!("CARGO_PKG_VERSION")))
     .inner_size(1360.0, 860.0)
     .min_inner_size(960.0, 580.0)
     .decorations(false)
@@ -481,12 +481,12 @@ fn main() {
             let quick=MenuItem::with_id(app,"quick","快捷面板 · Ctrl+Alt+1",true,None::<&str>)?;
             let library=MenuItem::with_id(app,"library","主库浏览",true,None::<&str>)?;
             let logs=MenuItem::with_id(app,"logs",format!("日志：{}",app.state::<Runtime>().log_path.display()),false,None::<&str>)?;
-            let quit=MenuItem::with_id(app,"quit","退出 PoC",true,None::<&str>)?;
+            let quit=MenuItem::with_id(app,"quit","退出 Prompt Shelf",true,None::<&str>)?;
             let status=MenuItem::with_id(app,"status","待命 · 错误保留于此；快捷键打开查看详情",false,None::<&str>)?;
             *app.state::<Runtime>().tray_status.lock().unwrap()=Some(status.clone());
             let menu=Menu::with_items(app,&[&status,&quick,&library,&logs,&quit])?;
             let icon=tauri::image::Image::new_owned([36u8,91,255,255].repeat(32*32),32,32);
-            TrayIconBuilder::with_id("main").icon(icon).tooltip("Prompt Shelf · 4.3 PoC").menu(&menu).on_menu_event(|app,event|match event.id.as_ref(){"quick"=>wake(app,"all",false),"library"=>{let app=app.clone();tauri::async_runtime::spawn(async move{if let Err(error)=open_library(app.clone()).await{app.state::<Runtime>().log("library_create_failed",serde_json::json!({"error":error}));if let Some(status)=app.state::<Runtime>().tray_status.lock().unwrap().as_ref(){let _=status.set_text(format!("主库创建失败：{error}"));}}});},"quit"=>{if let Err(error)=request_close(app,"exit"){app.state::<Runtime>().log("close_request_failed",serde_json::json!({"error":error}));}},_=>{}}).build(app)?;
+            TrayIconBuilder::with_id("main").icon(icon).tooltip(format!("Prompt Shelf {} · 候选版",env!("CARGO_PKG_VERSION"))).menu(&menu).on_menu_event(|app,event|match event.id.as_ref(){"quick"=>wake(app,"all",false),"library"=>{let app=app.clone();tauri::async_runtime::spawn(async move{if let Err(error)=open_library(app.clone()).await{app.state::<Runtime>().log("library_create_failed",serde_json::json!({"error":error}));if let Some(status)=app.state::<Runtime>().tray_status.lock().unwrap().as_ref(){let _=status.set_text(format!("主库创建失败：{error}"));}}});},"quit"=>{if let Err(error)=request_close(app,"exit"){app.state::<Runtime>().log("close_request_failed",serde_json::json!({"error":error}));}},_=>{}}).build(app)?;
             for code in [Code::Digit1,Code::Digit2,Code::Digit3]{app.global_shortcut().register(Shortcut::new(Some(Modifiers::CONTROL|Modifiers::ALT),code))?;}
             Ok(())
         })
@@ -495,7 +495,7 @@ fn main() {
             if let tauri::WindowEvent::CloseRequested{api,..}=event{if window.label()=="quick_panel"{api.prevent_close();let _=close_panel(window.app_handle());}else if window.label()=="library_manager"{api.prevent_close();let _=request_close(window.app_handle(),"close");}}
             if let tauri::WindowEvent::Destroyed=event{if window.label()=="library_manager"{let state=window.state::<Runtime>();*state.library_creating.lock().unwrap()=false;state.edits.clear();state.backups.window_closed();state.closing.lock().unwrap().reset();state.log("library_window_destroyed",serde_json::json!({}));}}
         })
-        .build(tauri::generate_context!()).expect("PoC startup failed: check hotkey conflicts and manifest paths")
+        .build(tauri::generate_context!()).expect("Prompt Shelf 启动失败：请检查快捷键冲突和资料库路径")
         .run(|app,event|{if let tauri::RunEvent::ExitRequested{api,..}=event{if !app.state::<Runtime>().allow_exit.load(Ordering::Acquire){api.prevent_exit();let _=request_close(app,"exit");}}});
 }
 #[cfg(test)]

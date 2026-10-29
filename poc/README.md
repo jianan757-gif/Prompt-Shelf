@@ -1,6 +1,6 @@
-# Prompt Shelf · 4.4 C 分类、检索与调用
+# Prompt Shelf 0.2.0-beta.1 · Windows 候选版
 
-沿用 Tauri 2 + Rust + React/TypeScript、阶段 A 底座和已验收 B1 UI。B2 增加 SQLite 自动草稿、异常恢复与未保存处理，承接 B1 的案例内联编辑、图片操作和双窗刷新。停止在 B2，不扩展 C–F。
+本地提示词与图片资料库，使用 Tauri 2 + Rust + React/TypeScript。已实现案例编辑、自动草稿、分类检索、收藏与最近使用、回收站、ZIP 整库备份恢复，以及 Windows 托盘与快捷调用。本版为 F 交付候选版，不是稳定版；保留已验收 A–E 行为。
 
 ## 构建与验证
 
@@ -11,46 +11,50 @@ cd poc
 pnpm install --frozen-lockfile
 pnpm test
 pnpm build
-$env:CARGO_TARGET_DIR = Join-Path $PWD 'src-tauri/target-stage-c'
+$env:CARGO_TARGET_DIR = Join-Path $PWD 'src-tauri/target-stage-f'
 cargo test --manifest-path src-tauri/Cargo.toml --locked
-pnpm tauri build --no-bundle -- --locked
+pnpm tauri build --bundles nsis -- --locked
 cargo build --manifest-path src-tauri/Cargo.toml --release --bin prompt-shelf-store --locked
 ```
 
-本阶段两个 exe 位于 target-stage-c/release/：prompt-shelf-poc.exe（主程序，文件名保留）、prompt-shelf-store.exe（离线工具）。旧阶段 A、round7 等目录不覆盖。reports/b2-r2/ 留本机测试、构建与哈希；编译/Mock 验证不代替真实目标接收和 Windows UI 手测。
+F 的两个 exe 位于 src-tauri/target-stage-f/release/：prompt-shelf-poc.exe（主程序，内部文件名保留）、prompt-shelf-store.exe（离线工具）。安装包在 release/bundle/nsis/。仓库根 scripts/build-stage-f.ps1 负责正式候选构建，scripts/start-stage-f.ps1 负责启动。自测报告见 reports/stage-f/；安装与升级验收及资源基线由主控单独记录，编译/Mock 验证不代替 Windows UI 手测。
 
 ## 数据目录与启动
 
-生产 application identifier 为 io.github.jianan757-gif.promptshelf，与旧 local.promptshelf.poc 隔离。默认使用新标识的 Tauri 本地应用数据目录，首次为空库。不扫描 manifest、演示案例或 PROMPT_SHELF_MANIFEST，不自动迁移旧 PoC 数据。
+生产 application identifier 为 io.github.jianan757-gif.promptshelf，与旧 local.promptshelf.poc 隔离。默认使用 %LOCALAPPDATA%/io.github.jianan757-gif.promptshelf，首次为空库。不扫描 manifest、演示案例或 PROMPT_SHELF_MANIFEST，不自动迁移旧 PoC 数据。
 
 GUI 仅支持可选 --data-dir <directory>，测试/开发指定独立目录：
 
 ```powershell
-& './src-tauri/target-stage-b2-r2/release/prompt-shelf-poc.exe' --data-dir 'D:/PromptShelf-test/library-a'
+& './src-tauri/target-stage-f/release/prompt-shelf-poc.exe' --data-dir 'D:/PromptShelf-test/library-a'
 ```
 
 主程序先初始化官方 single-instance 插件，再运行其他插件和 setup。重复启动不执行导入、数据打开、热键注册或目标改绑。单库单连接受 Mutex<Connection> 保护，SQL/文件工作在 blocking worker 中进行。Store 全生命周期持有 .library.lock 的 OS 锁，离线工具与 GUI、两个离线工具不能同时打开同一目录；进程退出由 OS 释放，不删除锁文件。
 
+首次兼容已有平面资料库，恢复后 active.json 指向同根 storage/<uuid>/；不更改 identifier，不自动迁移其他旧标识的数据。库根不可放在安装目录内。
+
 ```text
 <data-dir>/
-  library.db                     SQLite schema v1（WAL/FULL，FK=ON）
-  assets/<sha256>.<png|jpg|webp>   不可变原始字节
-  cache/thumbs/<hash>-180-v1.png  独立缩略图，小图不放大
-  staging/                       同卷临时导入文件
-  logs/poc.jsonl                 运行日志
-  .library.lock                  库占用锁
+  active.json, active.previous.json  E 起使用的当前/上一库指针（有则读取）
+  storage/<uuid>/                   整体恢复产生的资料库
+  library.db, assets/               平面旧库兼容；schema 2
+  cache/, staging/, logs/           缓存、临时文件及运行日志
+  .library-host.lock               应用根锁
+  .library.lock                    各资料库锁
 ```
 
-路径经 DataPaths 统一解析，数据库只存相对原图路径。迁移在事务中更新 user_version；未来版本、非空未版本化数据库和迁移失败均报错，不清库重建。A 没有 storage-id、active.json、切库或恢复机制。
+安装使用官方 NSIS 当前用户模式，显示名称 Prompt Shelf，候选版本 0.2.0-beta.1。已装 WebView2 可直接使用；缺失时由官方 bootstrapper 下载，需网络。安装后可从开始菜单或安装结束页启动，应用驻留托盘；Ctrl+Alt+1/2/3 打开快捷面板，托盘“主库浏览”打开主库，窗口关闭遵循已有未保存处理。没有新增登录自启。
+
+升级/覆盖安装前退出应用，使用相同 identifier 和数据根。正常卸载只删除程序与快捷方式；最小 NSIS hook 强制保留资料库。官方卸载页的“删除应用数据”框仍存在，若勾选会提示资料仍保留，不能据此清理资料。重新安装后沿用原数据；主动清理请在退出后自行处理明确的资料目录。安装器行为须用独立测试 identifier 和私有安装目录验证，不能拿真实用户库做安装测试。
 
 ## 显式开发样本导入与离线检查
 
 prompt-shelf-store 是独立 console binary，无 Tauri Builder、窗口、托盘、热键或系统输入。必须提供 --data-dir，可附 --import-manifest <path> 和 --check。每次成功均执行完整性/外键/原图哈希检查，输出一行 JSON；失败非零退出。
 
 ```powershell
-& './src-tauri/target-stage-b2-r2/release/prompt-shelf-store.exe' --data-dir 'D:/PromptShelf-test/library-a' --import-manifest '../fixtures/100x500/manifest.json' --check
+& './src-tauri/target-stage-f/release/prompt-shelf-store.exe' --data-dir 'D:/PromptShelf-test/library-a' --import-manifest '../fixtures/100x500/manifest.json' --check
 # 导入进程退出后，以另一进程重开
-& './src-tauri/target-stage-b2-r2/release/prompt-shelf-store.exe' --data-dir 'D:/PromptShelf-test/library-a' --check
+& './src-tauri/target-stage-f/release/prompt-shelf-store.exe' --data-dir 'D:/PromptShelf-test/library-a' --check
 ```
 
 先关闭持有同目录的程序；CLI 仍检测占用并拒绝打开。导入只允许空库，使用原 schema-v1 fixture 格式；original/thumb 必须是 manifest 根内存在的相对文件且互不混用。旧 thumb 只作兼容输入验证，正式缩略图从新保存原图重建。旧 ID 映射为新 UUID；同 hash 一资产/一原图，同案多位置、效果图/参考图与跨案共享保留为独立引用行。
@@ -67,13 +71,15 @@ PNG/JPEG/WebP；单源文件上限 512 MiB，解码宽高各上限 32768、分�
 
 在目标输入框按 Ctrl+Alt+1/2/3 呼出；Enter/文字、单图、参考图队列仍使用原请求保护。面板粘贴后可见置顶、目标持焦，搜索/筛选和轨道位置保留。活动 Esc 仅取消，释放后闲时 Esc 收起并注销；隐藏后不持有全局 Esc。done/total 只表示已触发，不代表目标收到或上传完成。
 
-A 的接入冒烟覆盖正式库快照到既有文本/图片准备，不发送系统粘贴。真实目标、GUI 重复启动、实际 DPI 与高分辨率/真实 ICC 素材仍需人工检查。主库已接手动保存；收藏、最近使用等业务仍留后续阶段。
+自动化覆盖临时资料库、生产 Rust 逻辑与实际 React 两窗，未发送系统粘贴。Windows 安装/升级/卸载/重装、真实目标接收、托盘/重复启动/DPI 和高分辨率/真实 ICC 素材由主控及用户验收；macOS 未验证。资源指标目前只采基线，阈值待用户确定。
 
 ## 目录与依赖
 
 ```text
 src/                            现有 React UI、搜索、图片轨道
-src-tauri/src/paths.rs           平面路径
+src-tauri/src/paths.rs           活跃资料库内路径
+src-tauri/src/storage_host.rs    根锁、active 指针与整库切换
+src-tauri/installer/hooks.nsh    卸载保留资料
 src-tauri/src/store.rs           SQLite、导入、DTO 查询
 src-tauri/src/migrations/        事务迁移
 src-tauri/src/assets.rs          原图与可重建缩略图
@@ -82,10 +88,12 @@ src-tauri/src/bin/               离线 CLI
 src-tauri/src/platform/          保留的系统粘贴适配
 src-tauri/src/queue.rs,escape.rs  保留的队列和 Esc
 src-tauri/tests/                 CLI 真实进程、scope MockRuntime
-reports/stage-a/                 本阶段证据
+reports/stage-f/                 F 自测证据
 ```
 
 新增依赖：rusqlite 0.41.0（bundled/backup，MIT）、libsqlite3-sys 0.39.1 自带 SQLite 3.54.1（public domain）；官方 tauri-plugin-single-instance 2.5.4（MIT/Apache-2.0）、tempfile 3.27.0（MIT/Apache-2.0），UUID 复用锁定的 1.x（MIT/Apache-2.0）。已有 image、sha2、Serde 等继续使用，实际版本见锁文件和 CLI sqliteVersion。官方依据：[单实例](https://v2.tauri.app/plugin/single-instance/)、[SQLite 版本](https://www.sqlite.org/changes.html)、[rusqlite](https://docs.rs/rusqlite/)。
+
+以下 B–E 分节保留各阶段能力与当时验证边界；其中旧构建路径和停止范围只描述对应阶段，当前交付以本文开头 F 说明为准。
 
 ## B1 业务范围与使用
 

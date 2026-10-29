@@ -1,0 +1,50 @@
+{
+  "stage": "F",
+  "state": "user-accepted-pending-independent-review",
+  "branch": "codex/4.4-f-delivery",
+  "eMerge": "68d675a",
+  "rollback": "baseline-stage-e -> bb9f6d8",
+  "version": "0.2.0-beta.1",
+  "schema": 2,
+  "newDependencies": false,
+  "rust": {
+    "library": 81,
+    "scope": 2,
+    "binary": 40
+  },
+  "frontend": 30,
+  "react": {
+    "catalog": 16,
+    "cleanupWarning": 4,
+    "backup": 9
+  },
+  "installer": "PASS actual isolated-identity install/upgrade/uninstall/reinstall; same source two config versions",
+  "data": "PASS E CLI seed -> F checks; logical and 500 original hashes unchanged",
+  "nativeUI": "USER_REPORTED_PASS_CHECKLIST_1_TO_6",
+  "nativePaste": "USER_REPORTED_PASS_NO_APPLICATION_DETAILS",
+  "resources": "user-reported usability pass; quantified hidden baseline only; other states not recorded",
+  "performanceThresholds": "NOT_APPROVED",
+  "signature": "NOT_SIGNED",
+  "release": "LOCAL_CANDIDATE_ONLY",
+  "limits": [
+    "no historical E installer existed",
+    "native uninstall delete-data checkbox not clicked; hook order inspected",
+    "no missing-WebView2 install",
+    "no macOS",
+    "no stable release"
+  ],
+  "userAcceptance": {
+    "feedback": "已全部通过，推送吧",
+    "manualChecklistPassed": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "perApplicationDetails": "NOT_PROVIDED",
+    "testsRerun": false,
+    "independentReview": "PENDING"
+  }
+}

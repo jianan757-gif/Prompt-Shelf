@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "poc-windows",
-  "description": "Only PoC local windows; native paste remains Rust controlled",
+  "description": "Prompt Shelf local windows; native paste remains Rust controlled",
   "windows": ["quick_panel", "library_manager"],
   "permissions": ["core:default", "core:window:allow-start-dragging"]
 }

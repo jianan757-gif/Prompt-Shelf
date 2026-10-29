@@ -1,0 +1,9 @@
+PASS actual export cancellation stops the paused synthetic archive worker, retains draft and releases maintenance only after completion
+PASS export flushes dirty editor to a draft without formal save, publishes real ZIP with dated suggestion and file/byte progress
+PASS repeated export reports a Chinese failure and preserves the existing backup bytes
+PASS restore preserves existing editor through stay guard; cancelling a completed preview removes only its known temporary storage
+PASS corrupt ZIP gives readable Chinese feedback without modifying the active library
+PASS a changed current library refreshes the exact four current-to-backup counts and requires a separate confirmation
+PASS whole-library restore rebuilds both real React windows, restores trash/drafts/config and rejects a deliberately late old-library response
+PASS old-generation writes and queue events cannot mutate or lock the restored library
+PASS pointer-selected restored library survives real worker restart while retaining the previous flat library
