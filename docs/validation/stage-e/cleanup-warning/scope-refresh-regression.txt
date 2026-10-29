@@ -1,0 +1,9 @@
+   Compiling prompt-shelf-poc v0.1.0 (<repo>\poc\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.03s
+     Running tests\scope_refresh.rs (poc/src-tauri/target-stage-e\debug\deps\scope_refresh-2db4f229986b1b8c.exe)
+
+running 2 tests
+test retirement_tests::retiring_old_grants_preserves_new_library_granted_before_reinitialized_event ... ok
+test incremental_import_deduplicates_and_refresh_scope_grants_only_thumbnails ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s

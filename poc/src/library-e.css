@@ -1,0 +1,8 @@
+/* V5.0 backup shares the existing modal and frozen two-column summary grid. */
+.library-root .backup-counts .backup-count-arrow{font-size:14px;color:#8594a7}
+.library-root .backup-drafts{line-height:1.8}
+.library-root .backup-modal .v50-summary,.library-root .backup-modal .v50-positive{overflow-wrap:anywhere}
+.library-root .backup-progress{font-size:12px;line-height:1.8;color:#566982;margin:13px 0}
+.library-root .backup-progress progress{display:block;width:100%;height:9px;margin:8px 0;accent-color:#245bff}
+.library-root .backup-progress>span{font-size:11px;color:#8594a7}
+.library-root .backup-modal .backup-error{white-space:pre-wrap;overflow-wrap:anywhere}

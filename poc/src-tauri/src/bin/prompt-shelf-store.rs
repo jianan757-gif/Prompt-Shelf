@@ -1,4 +1,4 @@
-use prompt_shelf_poc::{paths::DataPaths, store::Store};
+use prompt_shelf_poc::storage_host::LibraryHost;
 use std::path::PathBuf;
 
 fn run() -> Result<(), String> {
@@ -14,11 +14,12 @@ fn run() -> Result<(), String> {
         }
     }
     let directory = directory.ok_or("offline_cli_requires_explicit_data_dir")?;
-    let store = Store::open(DataPaths::new(&directory)?)?;
+    let host = LibraryHost::open(&directory)?;
+    let context = host.context()?;
     if let Some(path) = manifest {
-        store.import_manifest(&path)?;
+        host.write(context.generation, |store| store.import_manifest(&path))?;
     }
-    println!("{}", store.check()?);
+    println!("{}", host.read(context.generation, |store| store.check())?);
     Ok(())
 }
 fn main() {

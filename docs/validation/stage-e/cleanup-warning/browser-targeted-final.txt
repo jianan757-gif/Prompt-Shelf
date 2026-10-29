@@ -1,0 +1,4 @@
+PASS injected scope cleanup error still returns restore success and leaves the restored library active
+PASS warning and log survive an early generation event and real React remount in both windows
+PASS reloading the library reads the retained warning instead of losing it with the old restore dialog
+PASS normal restore still succeeds, activates the next library and clears the previous generation warning

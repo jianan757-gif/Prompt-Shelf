@@ -1,0 +1,27 @@
+Independent Stage E verification summary
+Date: 2026-10-29
+
+Source freeze
+- source-manifest.json SHA-256: 52eeaed474f101c053a3de4af471248a324c9575ce55e31413bd2cf97ddaef8c
+- 108/108 source files matched recorded byte sizes and SHA-256 before and after testing.
+- Protected Stage D baseline: 11/11 files matched; no source files were edited.
+
+Target and data isolation
+- Cargo target: poc/src-tauri/target-stage-e (debug test artifacts only; no release directory).
+- Test sources use TempDir roots. backup_cli invokes the CLI only against its TempDir root.
+- No GUI launched and no user library accessed.
+
+Serial Rust test results (all exit code 0)
+1. cargo test --locked --target-dir target-stage-e --lib backup::tests: 10 passed, 0 failed.
+2. cargo test --locked --target-dir target-stage-e --lib storage_host::tests: 10 passed, 0 failed. This count includes the worker helper test entry; the interruption parent test also launched the worker as a child at both pointer boundaries.
+3. cargo test --locked --target-dir target-stage-e --bin prompt-shelf-poc backup_commands::tests: 2 passed, 0 failed.
+4. cargo test --locked --target-dir target-stage-e --test backup_cli: 1 passed, 0 failed.
+5. cargo test --locked --target-dir target-stage-e --test scope_refresh: 2 passed, 0 failed.
+- Total reported top-level cases: 25 passed, 0 failed. The two child worker invocations are part of the storage interruption test, not additional top-level Cargo cases.
+
+V5 style static check
+- Protected V5 base CSS files match their recorded hashes (including library.css and library-d.css).
+- V5 packaged CSS check reports PASS and prototypeStylePreserved=true; current production CSS contains the shared modal and backup selectors in the library chunks.
+- Visual acceptance remains NOT_RUN; this verification did not launch a GUI.
+
+Per-command output and exit codes are in independent-backup-tests.txt, independent-storage-host-tests.txt, independent-backup-commands-tests.txt, independent-backup-cli-tests.txt, and independent-scope-refresh-tests.txt. Preflight details are in independent-preflight.txt.

@@ -1,0 +1,11 @@
+   Compiling prompt-shelf-poc v0.1.0 (<repo>\poc\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.32s
+     Running tests\backup_cli.rs (target-stage-e\debug\deps\backup_cli-faa39e03a6ac422e.exe)
+
+running 1 test
+test cli_resolves_active_storage_and_cannot_bypass_root_lease ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+
+EXIT_CODE=0

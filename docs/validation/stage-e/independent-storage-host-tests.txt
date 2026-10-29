@@ -1,0 +1,19 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.40s
+     Running unittests src\lib.rs (target-stage-e\debug\deps\prompt_shelf_poc-52d4cfdd42abb9b4.exe)
+
+running 10 tests
+test storage_host::tests::switch_interruption_worker ... ok
+test storage_host::tests::existing_flat_zero_version_database_is_never_initialized_even_with_orphan_assets ... ok
+test storage_host::tests::pointed_zero_version_database_is_rejected_without_initializing_it ... ok
+test storage_host::tests::root_lease_excludes_second_entry_and_flat_library_is_never_moved ... ok
+test storage_host::tests::maintenance_barrier_waits_for_in_flight_import_write_and_rejects_late_old_generation ... ok
+test storage_host::tests::generations_maintenance_and_revision_gate_all_operations ... ok
+test storage_host::tests::bad_active_falls_back_to_verified_previous_with_new_generation_and_bad_both_never_create_empty ... ok
+test storage_host::tests::switch_closes_old_database_but_retains_originals_drafts_and_flat_rollback ... ok
+test storage_host::tests::ordinary_errors_at_both_pointer_checkpoints_leave_runtime_and_disk_on_old_library ... ok
+test storage_host::tests::killed_worker_at_real_pointer_boundaries_reopens_a_complete_old_or_new_library ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 71 filtered out; finished in 0.48s
+
+
+EXIT_CODE=0

@@ -1,0 +1,14 @@
+cargo.exe :    Compiling tauri v2.12.5
+At <repo>\scripts\build-stage-e.ps1:23 char:3
++   & cargo build --manifest-path src-tauri/Cargo.toml --release --bin  ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (   Compiling tauri v2.12.5:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+   Compiling tauri-macros v2.7.4
+   Compiling tauri-plugin-fs v2.7.1
+   Compiling tauri-plugin-global-shortcut v2.4.1
+   Compiling tauri-plugin-dialog v2.8.3
+   Compiling prompt-shelf-poc v0.1.0 (<repo>\poc\src-tauri)
+   Compiling tauri-plugin-single-instance v2.5.4
+    Finished `release` profile [optimized] target(s) in 28.37s

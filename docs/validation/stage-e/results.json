@@ -1,0 +1,83 @@
+{
+  "revision": "4.4-e",
+  "state": "external-review-approved-baseline-cleanup-warning-fix-pending-review",
+  "frozenAt": "2026-10-29T13:09:13.9421492+08:00",
+  "sourceFiles": 108,
+  "sourceManifestSha256": "52eeaed474f101c053a3de4af471248a324c9575ce55e31413bd2cf97ddaef8c",
+  "schema": 2,
+  "schemaMigration": "NONE",
+  "addedDependencies": [
+    "zip=8.6.0",
+    "fs2=0.4.3"
+  ],
+  "archivePass": 10,
+  "hostPass": 10,
+  "hostNote": "includes one worker entry; real child kill at previous/active pointer boundaries in Windows temp directories",
+  "binaryLogicPass": 39,
+  "workerLifetimeFinalPass": 2,
+  "workerNote": "2 included in binary39; filtered rerun after moving commit before storage publish",
+  "realCliPass": 1,
+  "thumbnailScopePass": 2,
+  "frontendLogicPass": 30,
+  "browserChecks": 9,
+  "browserJson": "backup-browser-2026-10-29T05-02-34-873Z.json",
+  "browserLog": "browser-initial.txt",
+  "typescript": "PASS frontend-build.txt",
+  "packagedCss": "PASS packaged-css-check.txt",
+  "zip64": "Structure/large_file option only; actual >4GiB package NOT_RUN",
+  "filesystemInterruption": "REAL_WINDOWS_TEMP_FS_SELF_SPAWNED_WORKER_KILL; not power loss",
+  "gui": "NOT_RUN_BY_DEVELOPER",
+  "nativeClipboard": "USER_REPORTED_PASS_ITEM_5",
+  "nativeTargetApplications": "USER_REPORTED_PASS_ITEM_5_APPLICATION_DETAILS_NOT_PROVIDED",
+  "releaseOwner": "Controller Tauri CLI target-stage-e",
+  "releaseStatus": "TAURI_GUI_AND_CLI_BUILD_PASS",
+  "testCounts": "Per group, not summed; filtered reruns are not independent additional tests",
+  "independentReportedPass": 25,
+  "windowsManualAcceptance": "USER_REPORTED_PASS_ITEMS_1_TO_5_ITEM_6_AUTOMATION_INSTEAD_OF_MANUAL",
+  "production": {
+    "builtAt": "2026-10-29T13:18:57.0456925+08:00",
+    "guiSha256": "2FD5F720085F9D78EC3B8D832012DDB218FF613B6A0635AB9CC94256D8F003F9",
+    "storeSha256": "CE9B0DF4A5BB5335487340F008FF7E3A693D527F6184DFD3F8BE5BC7D054597E",
+    "status": "production build only; runtime acceptance is separate"
+  },
+  "releaseCliSmoke": "PASS_FIRST_OPEN_AND_REOPEN_ISOLATED_EMPTY_SCHEMA_2",
+  "acceptanceEvidence": {
+    "userFeedback": "1-5验收清单全部通过，6用自动化取消用例补正",
+    "manualPassed": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "automationSubstitution": [
+      6
+    ],
+    "evidence": [
+      "archive-tests.txt",
+      "worker-lifetime-tests.txt",
+      "browser-tests.txt"
+    ],
+    "testsRerun": false,
+    "externalReview": "BASELINE_APPROVED; POST_REVIEW_FIX_PENDING"
+  },
+  "postReviewFix": {
+    "baseCommit": "38691f7",
+    "scope": "restore success survives old thumbnail permission cleanup failure",
+    "evidence": "cleanup-warning/",
+    "backupCommandsPass": 3,
+    "targetedTestIncludedInCommands": 1,
+    "thumbnailScopePass": 2,
+    "reactChecks": 4,
+    "frontendLogicPass": 30,
+    "frontendBuild": "PASS",
+    "packagedCss": "PASS",
+    "faultInjection": "temporary library; production result helper and test IPC; not actual native permission failure",
+    "nativeGui": "NOT_RUN",
+    "releaseRebuilt": false,
+    "schema": 2,
+    "dependenciesChanged": false,
+    "baselineEvidence": "original source manifest and release hashes describe pre-fix accepted baseline",
+    "push": "WAIT_FOR_USER_SELF_TEST_AND_CONFIRMATION"
+  }
+}

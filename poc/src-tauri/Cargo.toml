@@ -20,6 +20,8 @@ dunce = "1"
 rusqlite = { version = "=0.41.0", features = ["bundled", "backup"] }
 uuid = { version = "1", features = ["v4"] }
 tempfile = "3"
+zip = { version = "=8.6.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+fs2 = "=0.4.3"
 tauri-plugin-single-instance = "=2.5.4"
 tauri-plugin-dialog = "2"
 
