@@ -87,6 +87,50 @@ impl DataPaths {
     pub(crate) fn destination(&self, relative: &str) -> PathBuf {
         self.root.join(relative)
     }
+    /// Revalidate managed directories at the point of filesystem mutation. In particular,
+    /// do not follow a junction inserted after DataPaths::new, including an internal link.
+    pub(crate) fn validate_managed_area(&self, area: &str) -> Result<PathBuf, String> {
+        let relative = Path::new(area);
+        if relative.is_absolute() || !relative.components().all(|c| matches!(c, Component::Normal(_))) {
+            return Err("invalid_managed_area".into());
+        }
+        let mut current = self.root.clone();
+        for part in relative.components() {
+            current.push(part.as_os_str());
+            let metadata = std::fs::symlink_metadata(&current).map_err(|e| e.to_string())?;
+            if linked(&metadata) || !metadata.is_dir() || dunce::canonicalize(&current).map_err(|e| e.to_string())? != current {
+                return Err("data_directory_link_rejected".into());
+            }
+        }
+        Ok(current)
+    }
+    /// Only a known DB asset/cache file may be removed. Missing files are an idempotent success.
+    pub(crate) fn remove_managed_file(&self, relative: &str, area: &str) -> Result<(), String> {
+        let area_path = self.validate_managed_area(area)?;
+        let relative = Path::new(relative);
+        if relative.is_absolute() || !relative.components().all(|c| matches!(c, Component::Normal(_)))
+            || relative.parent() != Some(Path::new(area)) {
+            return Err("invalid_gc_path".into());
+        }
+        let path = area_path.join(relative.file_name().ok_or("invalid_gc_path")?);
+        match std::fs::symlink_metadata(&path) {
+            Ok(metadata) => {
+                if linked(&metadata) || !metadata.is_file() || dunce::canonicalize(&path).map_err(|e| e.to_string())? != path {
+                    return Err("data_file_link_rejected".into());
+                }
+                std::fs::remove_file(&path).map_err(|e| format!("gc_remove_failed: {e}"))
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Err(error) => Err(error.to_string()),
+        }
+    }
+}
+fn linked(metadata: &std::fs::Metadata) -> bool {
+    #[cfg(windows)] {
+        use std::os::windows::fs::MetadataExt;
+        metadata.file_type().is_symlink() || metadata.file_attributes() & 0x400 != 0
+    }
+    #[cfg(not(windows))] { metadata.file_type().is_symlink() }
 }
 
 #[cfg(test)]

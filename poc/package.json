@@ -1,6 +1,6 @@
 {
   "name": "prompt-shelf-poc", "version": "0.1.0", "private": true, "type": "module",
-  "scripts": {"dev":"vite --host 127.0.0.1 --port 1420 --strictPort", "build":"tsc --noEmit && vite build", "test":"node --experimental-strip-types --test src/search.test.ts src/carousel.test.ts src/session.test.ts src/library/model.test.ts src/library/editor.test.ts src/library/draftSafety.test.ts", "test:browser":"node tests/browser/editor-integration.cjs", "test:browser:controls":"node tests/browser/editor-integration.cjs --controls-only", "test:catalog":"node tests/browser/catalog-integration.cjs", "check:ui-build":"node scripts/check-ui-build.mjs", "tauri":"tauri"},
+  "scripts": {"dev":"vite --host 127.0.0.1 --port 1420 --strictPort", "build":"tsc --noEmit && vite build", "test":"node --experimental-strip-types --test src/search.test.ts src/carousel.test.ts src/session.test.ts src/library/model.test.ts src/library/editor.test.ts src/library/draftSafety.test.ts", "test:browser":"node tests/browser/editor-integration.cjs", "test:browser:controls":"node tests/browser/editor-integration.cjs --controls-only", "test:catalog":"node tests/browser/catalog-integration.cjs", "test:trash":"node tests/browser/trash-integration.cjs", "check:ui-build":"node scripts/check-ui-build.mjs", "tauri":"tauri"},
   "dependencies": {"@tauri-apps/api":"^2.8.0", "react":"^19.2.0", "react-dom":"^19.2.0"},
   "devDependencies": {"@tauri-apps/cli":"^2.8.0", "@types/react":"^19.2.0", "@types/react-dom":"^19.2.0", "typescript":"^5.9.3", "vite":"^7.1.0"}
 }

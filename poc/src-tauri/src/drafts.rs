@@ -154,6 +154,7 @@ impl Store {
         read(&*self.connection.lock().map_err(|e| e.to_string())?, draft)
     }
     fn create_draft(&self, d: &CaseDocument) -> Result<String, String> {
+        let _resources = self.resources.lock().map_err(|e| e.to_string())?;
         let mut c = self.connection.lock().map_err(|e| e.to_string())?;
         let tx = c.transaction().map_err(sql)?;
         // Never silently replace an unresolved draft for an existing case.
@@ -192,10 +193,12 @@ impl Store {
         )
         .map_err(sql)?;
         contents(self, &tx, &draft, d, 0, false)?;
+        crate::gc::mark_unreferenced(&tx)?;
         tx.commit().map_err(sql)?;
         Ok(draft)
     }
     pub fn update_draft(&self, draft: &str, d: &CaseDocument, seq: u64) -> Result<u64, String> {
+        let _resources = self.resources.lock().map_err(|e| e.to_string())?;
         let mut c = self.connection.lock().map_err(|e| e.to_string())?;
         let tx = c.transaction().map_err(sql)?;
         let (current, current_seq) = read(&tx, draft)?;
@@ -206,15 +209,17 @@ impl Store {
             return Err("stale_draft_seq".into());
         }
         contents(self, &tx, draft, d, seq, true)?;
+        crate::gc::mark_unreferenced(&tx)?;
         tx.commit().map_err(sql)?;
         Ok(seq)
     }
     pub fn discard_draft(&self, draft: &str) -> Result<(), String> {
-        self.connection
-            .lock()
-            .map_err(|e| e.to_string())?
-            .execute("DELETE FROM drafts WHERE id=?1", [draft])
-            .map_err(sql)?;
+        let _resources = self.resources.lock().map_err(|e| e.to_string())?;
+        let mut c = self.connection.lock().map_err(|e| e.to_string())?;
+        let tx = c.transaction().map_err(sql)?;
+        tx.execute("DELETE FROM drafts WHERE id=?1", [draft]).map_err(sql)?;
+        crate::gc::mark_unreferenced(&tx)?;
+        tx.commit().map_err(sql)?;
         Ok(())
     }
     fn recover_document(
@@ -222,6 +227,7 @@ impl Store {
         draft: &str,
         as_new: bool,
     ) -> Result<(String, CaseDocument, u64), String> {
+        let _resources = self.resources.lock().map_err(|e| e.to_string())?;
         let mut c = self.connection.lock().map_err(|e| e.to_string())?;
         let tx = c.transaction().map_err(sql)?;
         let (mut d, seq) = read(&tx, draft)?;
@@ -253,6 +259,7 @@ impl Store {
         } else {
             draft.to_owned()
         };
+        crate::gc::mark_unreferenced(&tx)?;
         tx.commit().map_err(sql)?;
         Ok((next, d, seq))
     }

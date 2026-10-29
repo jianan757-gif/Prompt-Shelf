@@ -1,0 +1,8 @@
+{
+  "manifestEntries": 96,
+  "manifestSha256": "5e0c7bb2b11cc61923a34dd1b12c5cb21f320d0206a377ee22e5c5413048dd01",
+  "expectedManifestSha256": "5e0c7bb2b11cc61923a34dd1b12c5cb21f320d0206a377ee22e5c5413048dd01",
+  "manifestHashMatches": true,
+  "matched": 96,
+  "mismatched": []
+}

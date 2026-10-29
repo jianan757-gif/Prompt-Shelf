@@ -22,6 +22,10 @@ fn incremental_import_deduplicates_and_refresh_scope_grants_only_thumbnails() {
     let same = store.import_image(&source.path().join("one.png")).unwrap();
     assert_eq!(same.id, first.id);
     assert_eq!(store.counts().unwrap(), (0, 1));
+    let mut document=store.edit_document(None).unwrap();
+    document.title="缩略图授权".into();document.prompt="刷新仅授权引用资产的缩略图".into();
+    document.references=vec![prompt_shelf_poc::cases::ImageReference{id:uuid::Uuid::new_v4().to_string(),asset_id:first.id.clone(),original_name:"one.png".into()}];
+    store.commit_case(&document).unwrap();
     let refreshed = store.library().unwrap();
     scope::authorize_thumbnails(app.handle(), &store, &refreshed).unwrap();
     assert!(app.asset_protocol_scope().is_allowed(&first.thumbnail));

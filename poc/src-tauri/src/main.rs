@@ -4,7 +4,10 @@ mod platform;
 mod queue;
 mod editing;
 mod catalog_commands;
+mod trash_commands;
+use trash_commands::{soft_delete_case,restore_case,permanently_delete_case,get_case_delete_draft,get_trash_index,get_trash_assets};
 #[cfg(test)]mod usage_queue_tests;
+#[cfg(test)]mod trash_queue_tests;
 use catalog_commands::{catalog_create,catalog_rename,catalog_delete,set_quick_tag,reorder_quick_tags,set_favorite,set_ui_preferences,save_dictionary,get_library_index,get_case_assets};
 use editing::{begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url,save_case_draft,list_case_drafts,recover_case_draft,discard_case_draft};
 use prompt_shelf_poc::{data,paths::DataPaths,store::Store,scope::authorize_thumbnails};
@@ -26,7 +29,7 @@ use tauri::{
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 type Target = <NativePlatform as PastePlatform>::Target;
-const BUILD_REVISION: &str = "4.4-c";
+const BUILD_REVISION: &str = "4.4-d";
 struct Runtime {
     platform: Arc<NativePlatform>,
     queue: Arc<queue::Queue>,
@@ -181,7 +184,7 @@ fn get_boot(window: tauri::WebviewWindow, state: tauri::State<Runtime>) -> serde
         None
     };
     let session = state.escape.lock().unwrap();
-    serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-c","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"libraryRevision":state.library_revision.load(Ordering::Acquire),"generation":1,"escapeRegistered":session.registered,"escapeError":session.error})
+    serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-d","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"libraryRevision":state.library_revision.load(Ordering::Acquire),"generation":1,"escapeRegistered":session.registered,"escapeError":session.error})
 }
 #[tauri::command]
 async fn search_ready(
@@ -370,7 +373,7 @@ async fn paste(
     let ticket=state.queue.reserve()?;
     let store=state.store.clone();let lookup_id=case_id.clone();let lookup_kind=kind.clone();
     let prepared=tauri::async_runtime::spawn_blocking(move||{
-        let library=store.case_snapshot_at_revision(&lookup_id,expected_revision)?;
+        let library=store.output_snapshot_at_revision(&lookup_id,expected_revision)?;
         paste_items(&library,&lookup_id,&lookup_kind,index)
     }).await.map_err(|e|e.to_string()).and_then(|result|result);
     let items=match prepared {Ok(items)=>items,Err(error)=>{state.queue.release();return Err(error)}};
@@ -450,7 +453,7 @@ fn main() {
             for (code,tab) in [(Code::Digit1,"all"),(Code::Digit2,"recent"),(Code::Digit3,"fav")]{if shortcut.matches(Modifiers::CONTROL|Modifiers::ALT,code){wake(app,tab,true);return;}}
         }).build())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![get_library,get_boot,ready,search_ready,hide_panel,panel_escape,cancel_queue,panel_interaction,open_library,close_library,window_action,paste,begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url,save_case_draft,list_case_drafts,recover_case_draft,discard_case_draft,pending_library_close,cancel_library_close,finish_library_close,catalog_create,catalog_rename,catalog_delete,set_quick_tag,reorder_quick_tags,set_favorite,set_ui_preferences,save_dictionary,get_library_index,get_case_assets])
+        .invoke_handler(tauri::generate_handler![get_library,get_boot,ready,search_ready,hide_panel,panel_escape,cancel_queue,panel_interaction,open_library,close_library,window_action,paste,begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url,save_case_draft,list_case_drafts,recover_case_draft,discard_case_draft,pending_library_close,cancel_library_close,finish_library_close,catalog_create,catalog_rename,catalog_delete,set_quick_tag,reorder_quick_tags,set_favorite,set_ui_preferences,save_dictionary,get_library_index,get_case_assets,soft_delete_case,restore_case,permanently_delete_case,get_case_delete_draft,get_trash_index,get_trash_assets])
         .setup(|app|{
             let mut arguments=std::env::args_os().skip(1);let mut override_directory=None;
             while let Some(argument)=arguments.next(){
@@ -459,6 +462,7 @@ fn main() {
             }
             let root=override_directory.unwrap_or(app.path().app_local_data_dir()?);
             let store=tauri::async_runtime::block_on(tauri::async_runtime::spawn_blocking(move||Store::open(DataPaths::new(&root)?))).map_err(std::io::Error::other)?.map_err(std::io::Error::other)?;
+            let gc=prompt_shelf_poc::clipboard_gc::startup_gc(&store).map_err(std::io::Error::other)?;
             let store=Arc::new(store);let directory=store.paths().logs();
             let log_path=directory.join("poc.jsonl");let log=std::fs::OpenOptions::new().create(true).append(true).open(&log_path)?;
             let reader=store.clone();
@@ -470,6 +474,7 @@ fn main() {
             if let Some(window)=app.get_webview_window("quick_panel"){platform.attach_window(&window)?;}
             let runtime=Runtime{platform,queue:Arc::new(queue::Queue::default()),escape:Mutex::new(escape::EscapeSession::default()),target:Mutex::new(None),store,edits:Arc::new(prompt_shelf_poc::cases::EditSessions::default()),library_revision:AtomicU64::new(0),closing:Mutex::new(Default::default()),allow_exit:std::sync::atomic::AtomicBool::new(false),log:Mutex::new(log),log_path,token:AtomicU64::new(1),wake:Mutex::new(None),library_start:Mutex::new(None),library_creating:Mutex::new(false),tray_status:Mutex::new(None)};
             runtime.log("startup",serde_json::json!({"cases":case_count,"assets":asset_count,"exe":std::env::current_exe().ok(),"revision":BUILD_REVISION,"platform":std::env::consts::OS,"resourceThreshold":"baseline_only_not_approved"}));
+            runtime.log("startup_gc",serde_json::to_value(&gc)?);
             app.manage(runtime);
             let quick=MenuItem::with_id(app,"quick","快捷面板 · Ctrl+Alt+1",true,None::<&str>)?;
             let library=MenuItem::with_id(app,"library","主库浏览",true,None::<&str>)?;

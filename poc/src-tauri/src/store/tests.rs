@@ -326,6 +326,10 @@ fn missing_or_corrupt_thumbnails_rebuild_only_from_matching_original() {
     png(&source.path().join("one.png"));
     let store = store(directory.path());
     let asset = store.import_image(&source.path().join("one.png")).unwrap();
+    let mut document=store.edit_document(None).unwrap();
+    document.title="缩略图重建".into();document.prompt="验证有效引用原图".into();
+    document.references=vec![crate::cases::ImageReference{id:uuid::Uuid::new_v4().to_string(),asset_id:asset.id.clone(),original_name:"one.png".into()}];
+    store.commit_case(&document).unwrap();
     let original = assets::hash_file(Path::new(&asset.original)).unwrap();
     std::fs::remove_file(&asset.thumbnail).unwrap();
     store.library().unwrap();

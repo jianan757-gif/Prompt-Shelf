@@ -9,9 +9,11 @@ use std::{
 };
 
 pub const SCHEMA_VERSION: i64 = 2;
-type AssetRow=(String,String,String,u32,u32);
+pub(crate) type AssetRow=(String,String,String,u32,u32);
 const INITIAL: &str = include_str!("migrations/001_initial.sql");
 pub struct Store {
+    // Lock order: edit session -> resources -> database. Never acquire resources under DB.
+    pub(crate) resources: Mutex<crate::gc::ResourceLifecycle>,
     pub(crate) connection: Mutex<Connection>,
     paths: DataPaths,
     // Held for this Store's whole lifetime, including offline CLI. Never unlink a live lock file.
@@ -83,6 +85,7 @@ impl Store {
             .pragma_update(None, "synchronous", "FULL")
             .map_err(sql)?;
         Ok(Self {
+            resources: Mutex::new(Default::default()),
             connection: Mutex::new(connection),
             paths,
             _lease: lease,
@@ -93,6 +96,10 @@ impl Store {
     }
     /// Incremental asset service for the next editing stage; no case/draft mutation here.
     pub fn import_image(&self, source: &Path) -> Result<data::Asset, String> {
+        let mut resources = self.resources.lock().map_err(|e| e.to_string())?;
+        self.paths.validate_managed_area("assets")?;
+        self.paths.validate_managed_area("cache/thumbs")?;
+        self.paths.validate_managed_area("staging")?;
         let ready = assets::prepare(&self.paths, source, "")?;
         let connection = self.connection.lock().map_err(|e| e.to_string())?;
         connection.execute("INSERT INTO assets(id,sha256,extension,mime,byte_size,width,height,relative_path,created_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9) ON CONFLICT(sha256) DO NOTHING",params![id(),ready.hash,ready.extension,ready.mime,ready.bytes as i64,ready.width,ready.height,ready.relative,now()]).map_err(sql)?;
@@ -103,6 +110,10 @@ impl Store {
                 |r| r.get(0),
             )
             .map_err(sql)?;
+        connection.execute("UPDATE assets SET gc_state='live' WHERE id=?1", [&asset_id]).map_err(sql)?;
+        // Imported files can wait in the renderer before draft_assets catches up.
+        // Pin conservatively for this run, including a cancelled/failed import result.
+        resources.imported.insert(asset_id.clone());
         drop(connection);
         Ok(data::Asset {
             id: asset_id,
@@ -145,6 +156,10 @@ impl Store {
     }
     /// Development-only batch seed. Ready files precede one all-or-nothing metadata transaction.
     pub fn import_manifest(&self, path: &Path) -> Result<(), String> {
+        let _resources = self.resources.lock().map_err(|e| e.to_string())?;
+        self.paths.validate_managed_area("assets")?;
+        self.paths.validate_managed_area("cache/thumbs")?;
+        self.paths.validate_managed_area("staging")?;
         if !Self::empty(&*self.connection.lock().map_err(|e| e.to_string())?)? {
             return Err("manifest_import_requires_empty_library".into());
         }
@@ -278,7 +293,8 @@ impl Store {
             }
         }
         let rows = if include_assets {
-            let mut statement=connection.prepare("SELECT a.id,a.sha256,a.relative_path,a.width,a.height FROM assets a WHERE ?1 IS NULL OR EXISTS(SELECT 1 FROM case_assets ca WHERE ca.asset_id=a.id AND ca.case_id=?1)").map_err(sql)?;
+            // Full editor recovery needs every referenced draft/trash asset, but no orphan rows.
+            let mut statement=connection.prepare("SELECT a.id,a.sha256,a.relative_path,a.width,a.height FROM assets a WHERE (?1 IS NULL AND (EXISTS(SELECT 1 FROM case_assets ca WHERE ca.asset_id=a.id) OR EXISTS(SELECT 1 FROM draft_assets da WHERE da.asset_id=a.id))) OR EXISTS(SELECT 1 FROM case_assets ca WHERE ca.asset_id=a.id AND ca.case_id=?1)").map_err(sql)?;
             let rows = statement
             .query_map([case_id], |r| {
                 Ok((
@@ -318,7 +334,7 @@ impl Store {
         drop(statement);drop(connection);
         self.asset_projection(rows,true)
     }
-    fn asset_projection(&self,rows:Vec<AssetRow>,thumbnails:bool)->Result<Vec<data::Asset>,String>{
+    pub(crate) fn asset_projection(&self,rows:Vec<AssetRow>,thumbnails:bool)->Result<Vec<data::Asset>,String>{
         // Decoding and filesystem work never hold the database connection mutex.
         let mut output = vec![];
         for (id, hash, relative, width, height) in rows {
@@ -340,6 +356,7 @@ impl Store {
         Ok(output)
     }
     pub fn check(&self) -> Result<serde_json::Value, String> {
+        let _resources = self.resources.lock().map_err(|e| e.to_string())?;
         let connection = self.connection.lock().map_err(|e| e.to_string())?;
         let integrity: String = connection
             .query_row("PRAGMA integrity_check", [], |r| r.get(0))
@@ -365,12 +382,35 @@ impl Store {
         let version: String = connection
             .query_row("SELECT sqlite_version()", [], |r| r.get(0))
             .map_err(sql)?;
+        let case_count:i64=connection.query_row("SELECT count(*) FROM cases WHERE deleted_at IS NULL",[],|r|r.get(0)).map_err(sql)?;
+        let rows={
+            let mut statement=connection.prepare("SELECT a.id,a.sha256,a.extension,a.relative_path,a.gc_state,EXISTS(SELECT 1 FROM case_assets ca WHERE ca.asset_id=a.id) OR EXISTS(SELECT 1 FROM draft_assets da WHERE da.asset_id=a.id) FROM assets a ORDER BY a.id").map_err(sql)?;
+            let rows=statement.query_map([],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,String>(4)?,r.get::<_,bool>(5)?))).map_err(sql)?.collect::<Result<Vec<_>,_>>().map_err(sql)?;
+            rows
+        };
         drop(foreign);
         drop(connection);
-        let library = self.library()?;
-        library.verify_hashes()?;
+        let asset_count=rows.len();
+        let mut recoverable_missing=vec![];
+        for (id,hash,extension,relative,gc_state,referenced) in rows {
+            if relative!=DataPaths::asset_relative(&hash,&extension)? {return Err("invalid_stored_path".into())}
+            let original=match self.paths.resolve(&relative,"assets") {
+                Ok(path)=>path,
+                Err(error)=>{
+                    // A prior GC may have unlinked the file but failed to delete its pending row.
+                    // Only true absence is recoverable: a dangling link or inaccessible path fails.
+                    self.paths.validate_managed_area("assets")?;
+                    if gc_state=="pending" && !referenced && matches!(std::fs::symlink_metadata(self.paths.destination(&relative)),Err(ref e) if e.kind()==std::io::ErrorKind::NotFound) {
+                        recoverable_missing.push(id);continue;
+                    }
+                    return Err(error);
+                }
+            };
+            if assets::hash_file(&original)?!=hash {return Err(format!("asset_hash_mismatch: {id}"))}
+        }
+        let hashes=if recoverable_missing.is_empty(){"ok"}else{"ok_except_recoverable_pending_missing"};
         Ok(
-            serde_json::json!({"schemaVersion":SCHEMA_VERSION,"sqliteVersion":version,"cases":library.cases.len(),"assets":library.assets.len(),"caseAssetReferences":references,"integrity":"ok","foreignKeys":"ok","originalHashes":"ok"}),
+            serde_json::json!({"schemaVersion":SCHEMA_VERSION,"sqliteVersion":version,"cases":case_count,"assets":asset_count,"caseAssetReferences":references,"integrity":"ok","foreignKeys":"ok","originalHashes":hashes,"recoverablePendingMissing":recoverable_missing.len(),"recoverablePendingMissingIds":recoverable_missing}),
         )
     }
 }

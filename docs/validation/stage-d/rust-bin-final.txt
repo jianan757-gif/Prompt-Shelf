@@ -1,0 +1,44 @@
+   Compiling prompt-shelf-poc v0.1.0 ([workspace]\poc\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.95s
+     Running unittests src\main.rs (poc/src-tauri/target-stage-d\debug\deps\prompt_shelf_poc-89b34ed843601f27.exe)
+
+running 37 tests
+test editing::tests::replacement_is_single_and_append_can_be_multiple ... ok
+test escape::tests::job_completion_does_not_release_visible_session_escape ... ok
+test escape::tests::one_held_escape_cancels_without_later_hiding_idle_panel ... ok
+test escape::tests::repeated_wake_does_not_reset_a_held_cancel_press ... ok
+test escape::tests::unregister_failure_cannot_mark_panel_hidden_or_release_ownership ... ok
+test platform::windows::tests::activation_pending_accepts_only_panel_null_or_original_target ... ok
+test platform::windows::tests::only_attached_quick_panel_preserves_target ... ok
+test platform::windows::tests::only_exact_quick_or_external_target_can_transition ... ok
+test escape::tests::registration_failure_is_explicit_and_local_fallback_is_one_press ... ok
+test platform::windows::tests::dib_headers_alpha_and_bottom_up ... ok
+test platform::windows::tests::text_is_full_utf16_with_terminator ... ok
+test queue::tests::single_guard_all_request_kinds_until_release ... ok
+test queue::tests::focus_switched_at_restore_event_never_restores_or_sends ... ok
+test queue::tests::closed_during_wait_stops_remainder ... ok
+test queue::tests::focus_switched_does_not_restore_again ... ok
+test queue::tests::cancel_on_write_boundary_no_dispatch ... ok
+test platform::windows::tests::png_original_bytes_and_persistent_hdrop ... ok
+test queue::tests::panel_refocus_after_send_stops_queue_without_restoring_again ... ok
+test queue::tests::six_in_order_one_restore_and_truthful_done ... ok
+test queue::tests::refusal_closed_clipboard_and_prepare_never_send ... ok
+test queue::tests::restored_native_refocus_cancels_but_initial_activation_notification_does_not ... ok
+test wake_policy_tests::capture_errors_only_preserve_exact_quick_panel ... ok
+test catalog_commands::tests::generation_and_window_are_required ... ok
+test trash_commands::tests::trash_commands_require_main_library_and_current_generation ... ok
+test queue::tests::concurrent_cancel_is_linearized_with_dispatch ... ok
+test queue::tests::cancellation_during_activation_wait_is_prompt_and_never_sends ... ok
+test queue::tests::third_party_during_activation_wait_rejects_without_retry ... ok
+test queue::tests::cancel_during_prepare_waits_worker_and_no_send ... ok
+test queue::tests::cancel_second_send_stops_remainder ... ok
+test queue::tests::third_party_during_first_preparation_never_activates_or_sends ... ok
+test queue::tests::visible_panel_continuous_calls_keep_target_and_do_not_refocus_panel ... ok
+test trash_queue_tests::trash_gate_rejects_active_or_late_editor_and_deleted_cases_cannot_start_new_output ... ok
+test usage_queue_tests::catalog_gate_rejects_active_editor_and_late_writes_after_success_cannot_revive_names ... ok
+test wake_policy_tests::sqlite_snapshot_feeds_existing_text_and_original_image_preparation ... ok
+test trash_queue_tests::deleting_source_during_real_queue_preserves_snapshot_files_after_completion_and_cancel ... ok
+test usage_queue_tests::real_queue_counts_only_first_success_even_after_cancel_and_never_replays_on_record_error ... ok
+test queue::tests::activation_timeout_never_hides_writes_or_retries ... ok
+
+test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s

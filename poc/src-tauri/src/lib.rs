@@ -9,3 +9,6 @@ pub mod drafts;
 pub mod paths;
 pub mod scope;
 pub mod store;
+pub mod gc;
+pub mod trash;
+pub mod clipboard_gc;

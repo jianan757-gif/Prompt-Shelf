@@ -1,0 +1,19 @@
+   Compiling prompt-shelf-poc v0.1.0 ([workspace]\poc\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.58s
+     Running unittests src\lib.rs (poc/src-tauri/target-stage-d\debug\deps\prompt_shelf_poc-baa7045bd5adb6f3.exe)
+
+running 11 tests
+test gc::tests::manifest_prepare_and_gc_share_the_same_resource_coordinator ... ok
+test gc::tests::stale_pending_state_and_missing_file_never_override_a_current_draft_reference ... ok
+JUNCTION_VERIFIED: testing an unprivileged temp junction
+test gc::tests::imported_asset_is_pinned_through_unattached_and_discarded_draft_then_collected_on_reopen ... ok
+test gc::tests::windows_open_original_retains_pending_on_unlink_failure_then_retries ... ok
+test gc::tests::missing_candidate_file_is_rebuilt_by_same_hash_import_and_returns_live_reference ... ok
+test gc::tests::clipboard_alias_unknown_and_unreadable_paths_conservatively_retain ... ok
+test gc::tests::cleanup_failure_retains_pending_row_and_retries_after_partial_file_removal ... ok
+test gc::tests::output_snapshot_keeps_original_after_case_delete_and_queue_cancellation_until_reopen ... ok
+test gc::tests::gc_rejects_managed_directory_replaced_by_link_when_supported ... ok
+test gc::tests::live_trash_and_draft_relations_protect_without_import_pins ... ok
+test gc::tests::importer_and_gc_serialize_across_file_prepare_registration_and_late_case_attachment ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 50 filtered out; finished in 0.86s
