@@ -1,6 +1,6 @@
 # E ZIP 备份与恢复交付记录
 
-2026-10-29。状态：E 实现、自动化验证、代理独立复测及生产构建完成，Windows 用户验收与外部结项审核待执行。D 已通过用户及独立审核，以 `5b92cd4` 保留历史合并 main；回退标签 `baseline-stage-d` 指向 `6e2d3e7`。E 分支为 `codex/4.4-e-backup`，未经审核不合并 main，不发布版本，不进入 F。
+2026-10-29。状态：E 实现、自动化验证、代理独立复测及生产构建完成，用户确认验收第 1–5 项通过，第 6 项采用已有自动化补证；外部结项审核待完成。D 已通过用户及独立审核，以 `5b92cd4` 保留历史合并 main；回退标签 `baseline-stage-d` 指向 `6e2d3e7`。E 分支为 `codex/4.4-e-backup`，未经审核不合并 main，不发布版本，不进入 F。
 
 ## 范围与数据边界
 
@@ -8,7 +8,11 @@
 
 所有自动化、故障注入和人工验收均使用独立临时库。禁止指定个人真实资料目录。恢复后保留上一库，不能将“代码可回退”理解为任意旧程序都能读取新目录布局：旧 D 程序不认识 E 的 active 指针，即使数据库 schema 仍为 2。
 
-## Windows 人工验收清单（待执行）
+## Windows 验收清单及结果
+
+用户反馈：“1-5验收清单全部通过，6用自动化取消用例补正”。第 1–5 项记为用户实机验收通过；第 6 项免人工补测，沿用已有自动化结果，不记为人工通过。未提供逐项截图或目标应用明细，不补造逐应用结论。
+
+第 6 项补证：[`archive-tests.txt`](../validation/stage-e/archive-tests.txt) 覆盖取消导出不发布/不覆盖、取消预检清理临时目录及取消/提交互斥；[`worker-lifetime-tests.txt`](../validation/stage-e/worker-lifetime-tests.txt) 验证取消后维护许可直到 worker 结束才释放；[`browser-tests.txt`](../validation/stage-e/browser-tests.txt) 验证实际 React + 生产 Store/ZIP 的取消、草稿保留、预览释放及损坏 ZIP 不改变当前库。以上均为此前已通过的隔离自动化，本次仅核对并关联记录，没有重复执行测试。
 
 使用 `scripts/start-stage-e.ps1 -Fixture empty` 的独立测试库；重启仍使用同一目录。测试素材仅用非敏感样本。
 
@@ -48,7 +52,7 @@
 | 源码冻结 | 108 份文件哈希已核对一致 | `source-manifest.json`（路径相对 `poc/`） |
 | 独立复测 | 25 个报告测试项通过，含上述 Host helper；源码 108/108、保护基线 11/11 一致，无源码修改 | `independent-summary.txt` 及对应分组日志 |
 | 生产构建 / CLI 冒烟 | Tauri GUI 和 CLI release 构建通过；独立空库首次打开及重开均通过完整性/外键检查，schema 2 | `production-build.json`、`gui-build.txt`、`store-build.txt`、`release-smoke.json` |
-| Windows 原生 GUI / 系统粘贴 | 待用户按上方清单验收 | 不以浏览器测试或编译成功代替 |
+| Windows 原生 GUI / 系统粘贴 | 用户确认第 1–5 项通过；第 6 项以已有自动化补证，未记为人工通过 | 本次用户反馈；自动化证据见上方补证说明，未提供逐应用明细 |
 
 初期测试曾遇到测试类型不匹配、MockRuntime 单测缺少 Windows Common Controls v6 清单导致进程启动失败，以及移动测试入口后的导入路径错误；已修正，相关组随后通过。完整过程日志留在本地 `poc/reports/stage-e/`，公开目录保留最终结果。
 
