@@ -14,6 +14,6 @@
   "samplingToolFix": "Math.Max integer overload corrected to double; original CPU figures invalidated; product unchanged",
   "responseEvidencePid": 36356,
   "correctedResourcePid": 34864,
-  "finalTestProcessCleanup": "Awaiting user tray exit for rerun process; first normal-exit measurement already passed",
+  "finalTestProcessCleanup": "PASS_USER_CONFIRMED_NORMAL_EXIT; SEVEN_TRACKED_PID_START_TIME_IDENTITIES_EXITED; POINT_IN_TIME_CHECK_NOT_LATENCY",
   "state": "supplemental-evidence-recorded-pending-final-review"
 }

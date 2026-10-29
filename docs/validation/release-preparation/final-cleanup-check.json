@@ -1,0 +1,47 @@
+{
+  "status": "PASS",
+  "method": "Point-in-time PID plus start-time identity check after user-confirmed normal tray exit; not an exit latency measurement",
+  "userFeedback": "已从托盘正常退出",
+  "checkedAt": "2026-10-29T22:44:28.4837345+08:00",
+  "rootPid": 34864,
+  "trackedIdentities": [
+    {
+      "pid": 22976,
+      "startTicks": 639288779840270896,
+      "state": "EXITED"
+    },
+    {
+      "pid": 34864,
+      "startTicks": 639288779838041364,
+      "state": "EXITED"
+    },
+    {
+      "pid": 35032,
+      "startTicks": 639288779839171396,
+      "state": "EXITED"
+    },
+    {
+      "pid": 36396,
+      "startTicks": 639288779840243964,
+      "state": "EXITED"
+    },
+    {
+      "pid": 39480,
+      "startTicks": 639288779838883565,
+      "state": "EXITED"
+    },
+    {
+      "pid": 42924,
+      "startTicks": 639288779840880248,
+      "state": "EXITED"
+    },
+    {
+      "pid": 9960,
+      "startTicks": 639288779840480637,
+      "state": "EXITED"
+    }
+  ],
+  "remainingOriginalInstances": 0,
+  "transitionSampling": "Earlier 120-second corrected attempt ended before user exit; does not represent post-exit zero sampling",
+  "firstExitEvidence": "First run retains the 23 consecutive zero-process samples"
+}
