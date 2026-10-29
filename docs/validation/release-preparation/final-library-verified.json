@@ -1,0 +1,22 @@
+{
+  "label": "final-library-verified",
+  "root_pid": 36356,
+  "seconds": 60.6606008,
+  "samples": 60,
+  "cpu_normalization": "100% = all logical processors",
+  "private_mib_p50": 344.01171875,
+  "private_mib_p95": 346.08984375,
+  "working_mib_p95": 609.515625,
+  "cpu_percent_mean": 0.3389830508474576,
+  "gpu": "not collected",
+  "verdict": "baseline only, thresholds not approved",
+  "method": "CIM ancestry, retained descendant PID+start-time identities; sums may double-count shared working pages; private bytes summed",
+  "root_identity": {
+    "path": "<repo>/poc/src-tauri/target-stage-f/release/prompt-shelf-poc.exe",
+    "pid": 36356,
+    "exe_sha256": "B7508445273A9F6E7AF647950665CA75F2644A0FDDD85586919CCFE64164373E",
+    "start_ticks": 639288767349628440
+  },
+  "scope_limitation": "Descendants only. Confirm dedicated WebView2 user-data-dir ownership before application acceptance; unrelated/pre-existing shared processes are not inferred.",
+  "cpuValidity": "INVALID_ROUNDED_INTEGER_OVERLOAD; counts and memory remain valid; exit zero counts establish post-exit zero usage separately"
+}

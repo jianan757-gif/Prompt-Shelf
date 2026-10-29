@@ -47,7 +47,7 @@ while($watch.Elapsed.TotalSeconds -lt $Seconds) {
     if(!$p) { continue }
     $cpuSeconds=$p.TotalProcessorTime.TotalSeconds
     $cpu=$null
-    if($previous.ContainsKey($processId) -and $delta -gt 0) { $cpu=[Math]::Max(0,($cpuSeconds-$previous[$processId])/$delta/$cpuCount*100);$cpuSum+=$cpu }
+    if($previous.ContainsKey($processId) -and $delta -gt 0) { $cpu=[Math]::Max(0.0,($cpuSeconds-$previous[$processId])/$delta/$cpuCount*100);$cpuSum+=$cpu }
     $previous[$processId]=$cpuSeconds
     $working+=$p.WorkingSet64;$private+=$p.PrivateMemorySize64
     $rows.Add([pscustomobject]@{label=$Label; elapsed_s=$now; pid=$processId; parent_pid=$processInfo[$processId].ParentProcessId;exe_path=$processInfo[$processId].ExecutablePath;name=$p.ProcessName; start_ticks=$known[$processId]; working_bytes=$p.WorkingSet64;private_bytes=$p.PrivateMemorySize64;cpu_percent_machine=$cpu})

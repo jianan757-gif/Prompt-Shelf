@@ -1,8 +1,8 @@
 # F Windows 集成与交付准备
 
-E 及 bb9f6d8 已通过审核，main 保留历史合并于 68d675a；baseline-stage-e 指向 bb9f6d8。F 分支 codex/4.4-f-delivery，候选版 0.2.0-beta.1；未经用户验收和独立审核，不合并 main、不发布稳定版。
+E 及 bb9f6d8 已通过审核，main 保留历史合并于 68d675a；baseline-stage-e 指向 bb9f6d8。F（8358d6d）已通过用户及独立审核，保留历史合并 main（2915ed8）；baseline-stage-f 指向 8358d6d。候选版 0.2.0-beta.1，不发布稳定版。最终补测另见 release-preparation.md。
 
-**当前状态：用户反馈“已全部通过，推送吧”，F 人工验收清单 1–6 记为用户报告通过，提交开发分支供独立审核。** 未提供逐项截图、逐应用版本或额外资源采样文件，不补造明细；本次整理验收记录，不重复执行已完成测试。
+**当前状态：用户反馈“已全部通过，推送吧”，F 人工验收清单 1–6 记为用户报告通过，后续用户已确认独立审核通过并批准结项。** 未提供逐项截图、逐应用版本或额外资源采样文件，不补造明细；本次整理验收记录，不重复执行已完成测试。
 
 ## 交付范围
 
@@ -21,7 +21,7 @@ E 及 bb9f6d8 已通过审核，main 保留历史合并于 68d675a；baseline-st
 | 前端与两窗 | 逻辑 30、实际 React 分类/编辑/同步 16、备份恢复 9、恢复警告 4 项通过；测试 IPC 连接真实 Store/Host。frontend-tests.txt、catalog-tests.txt、backup-tests.txt、cleanup-warning-tests.txt |
 | 构建 | TypeScript/Vite、分窗样式检查、Tauri GUI/CLI release、NSIS x64 通过。production-build.json、packaged-css.json |
 | 安装与保数据 | 独立应用身份实际静默安装 0.1.0、升级候选、卸载、重装均 exit 0；100 案例、500 原图、1 草稿/5 图片关系、回收站、分类、收藏/最近状态的 SQL 指纹与原图 SHA-256 不变。E CLI 创建库，F CLI 每步完整性/外键/原图检查通过。installer-results.json、data-retention.json |
-| 资源基线 | 100/500 隐藏状态 60 秒、60 次采样：进程树私有内存 P95 244.15 MiB，工作集 P95 398.69 MiB，采样 CPU 平均为 0%。含后代进程，不含 GPU；采样期间另有构建工作，非受控空闲系统。hidden-resource-baseline.json |
+| 历史资源基线 | 100/500 隐藏状态 60 秒、60 次采样：进程树私有内存 P95 244.15 MiB，工作集 P95 398.69 MiB。旧采样器 CPU 有整数取整问题，原“0%”不可作精确结论；最终准备已修正并补采，见 release-preparation.md。含后代进程，不含 GPU；当时另有构建工作。hidden-resource-baseline.json 保留原始记录 |
 | 搜索计算基线 | Node 执行生产 filterCases，100 案例、600 次采样 P95 0.95ms；不含 IPC、React 绘制或图片读取。search-computation.json |
 | Windows 界面及真实目标 | 用户报告清单 1–6 全部通过；未提供逐应用明细。Computer Use 已停止，后续不再使用，用户实测与自动化证据分别记录。 |
 
@@ -29,7 +29,7 @@ E 及 bb9f6d8 已通过审核，main 保留历史合并于 68d675a；baseline-st
 
 候选 EXE 与安装包本地位于 `evidence/stage-f/candidate/`，生产输出位于 `poc/src-tauri/target-stage-f/release/`。安装包 `Prompt Shelf_0.2.0-beta.1_x64-setup.exe` 约 4.25 MiB，SHA-256 `2BCA30D99AE05789CBDC6E8CF214A6DE4E753F49B48BD14BC2132BDF0964F2ED`；GUI SHA-256 `B7508445273A9F6E7AF647950665CA75F2644A0FDDD85586919CCFE64164373E`。候选包未签名，未创建 GitHub Release。原始日志及完整逐图指纹在本地 evidence/stage-f、poc/reports/stage-f，不公开个人路径。
 
-剩余事项：等待 F 独立审核。用户已确认下方清单通过；主库/面板/关闭后资源、唤醒及搜索端到端响应仍缺量化采样，性能阈值未批准，不声称全面性能达标。未测缺少 WebView2 的安装路径、不同 Windows/DPI 环境、真实断电及 macOS。F 用户验收依据本次反馈，不以此前 A–E 记录代替。
+剩余事项：F 独立审核已通过，进入最终发布准备补测。用户已确认下方清单通过；主库/面板/关闭后资源、唤醒及搜索端到端响应仍缺量化采样，性能阈值未批准，不声称全面性能达标。未测缺少 WebView2 的安装路径、不同 Windows/DPI 环境、真实断电及 macOS。F 用户验收依据本次反馈，不以此前 A–E 记录代替。
 
 ## Windows 人工验收清单
 

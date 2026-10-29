@@ -1,0 +1,22 @@
+{
+  "label": "final-corrected-quick",
+  "root_pid": 34864,
+  "seconds": 60.623728,
+  "samples": 60,
+  "cpu_normalization": "100% = all logical processors",
+  "private_mib_p50": 219.0234375,
+  "private_mib_p95": 221.78125,
+  "working_mib_p95": 428.65234375,
+  "cpu_percent_mean": 0.28941732681224924,
+  "gpu": "not collected",
+  "verdict": "baseline only, thresholds not approved",
+  "method": "CIM ancestry, retained descendant PID+start-time identities; sums may double-count shared working pages; private bytes summed",
+  "root_identity": {
+    "path": "<repo>/poc/src-tauri/target-stage-f/release/prompt-shelf-poc.exe",
+    "pid": 34864,
+    "exe_sha256": "B7508445273A9F6E7AF647950665CA75F2644A0FDDD85586919CCFE64164373E",
+    "start_ticks": 639288779838041364
+  },
+  "scope_limitation": "Descendants only. Confirm dedicated WebView2 user-data-dir ownership before application acceptance; unrelated/pre-existing shared processes are not inferred.",
+  "cpuValidity": "CORRECTED_DOUBLE_MATH_MAX; fractional CPU preserved"
+}

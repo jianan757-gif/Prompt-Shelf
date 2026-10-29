@@ -1,0 +1,10 @@
+{
+  "rootPid": 36356,
+  "database": "evidence/release-preparation/performance-100x500",
+  "operator": "Computer Use explicitly authorized for this performance run",
+  "quick": "observed native screenshot and accessibility tree: 100 cases, first 50 display",
+  "library": "observed native screenshot and accessibility tree: 100 cases; quick window absent from list",
+  "excludedAttempt": "first final-library sample began before quick hide was verified; exclude and rerun as final-library-verified",
+  "databaseWrites": "No editing, image paste or deletion performed",
+  "webviewProfile": "existing application EBWebView cache; parent PID chain confirmed; database/assets isolated"
+}

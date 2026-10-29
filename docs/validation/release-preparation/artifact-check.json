@@ -1,0 +1,35 @@
+[
+  {
+    "artifact": "GUI",
+    "file": "prompt-shelf-poc.exe",
+    "bytes": 15549952,
+    "sha256": "B7508445273A9F6E7AF647950665CA75F2644A0FDDD85586919CCFE64164373E",
+    "originalFHash": "B7508445273A9F6E7AF647950665CA75F2644A0FDDD85586919CCFE64164373E",
+    "matchesOriginalF": true,
+    "productName": "Prompt Shelf",
+    "version": "0.2.0-beta.1",
+    "signature": "NotSigned"
+  },
+  {
+    "artifact": "CLI",
+    "file": "prompt-shelf-store.exe",
+    "bytes": 3229184,
+    "sha256": "7B545AFE258D95C725777D33278732FA01F31373D236524D91338E430D9E5DEA",
+    "originalFHash": "B51E840F9E6B3BDC7A29AF7C6A3697395A76195553404D71DACE1AB8A24CEADC",
+    "matchesOriginalF": false,
+    "productName": "Prompt Shelf",
+    "version": "0.2.0-beta.1",
+    "signature": "NotSigned"
+  },
+  {
+    "artifact": "Installer",
+    "file": "Prompt Shelf_0.2.0-beta.1_x64-setup.exe",
+    "bytes": 4454625,
+    "sha256": "2BCA30D99AE05789CBDC6E8CF214A6DE4E753F49B48BD14BC2132BDF0964F2ED",
+    "originalFHash": "2BCA30D99AE05789CBDC6E8CF214A6DE4E753F49B48BD14BC2132BDF0964F2ED",
+    "matchesOriginalF": true,
+    "productName": "Prompt Shelf",
+    "version": "0.2.0-beta.1",
+    "signature": "NotSigned"
+  }
+]

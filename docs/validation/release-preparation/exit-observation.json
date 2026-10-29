@@ -1,0 +1,13 @@
+{
+  "samples": 119,
+  "firstZeroElapsedSeconds": "97.1672042",
+  "lastElapsedSeconds": "119.4777703",
+  "lastProcessCount": "0",
+  "lastPrivateBytes": "0",
+  "lastWorkingBytes": "0",
+  "lastCpuPercent": "0",
+  "zeroSamples": 23,
+  "zeroAfterFirst": 0,
+  "rootPid": 36356,
+  "method": "First user-confirmed normal tray exit. Post-exit zero usage established by zero tracked processes, unaffected by integer CPU rounding. Later CPU rerun uses same binary and fixture."
+}
