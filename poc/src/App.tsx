@@ -1,5 +1,6 @@
 import {createContext,useContext,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
-import {invoke,convertFileSrc,isTauri} from '@tauri-apps/api/core';
+import {convertFileSrc,isTauri} from '@tauri-apps/api/core';
+import {isCurrentLibraryGeneration,useLibraryInvoke} from './api';
 import {listen} from '@tauri-apps/api/event';
 import {LatestRead,selectionAfterRefresh,retainSessionOrder} from './refresh';
 import {dictionary,filterCases,highlightParts} from './search';
@@ -29,6 +30,7 @@ function Thumb({asset,label,result,onClick,disabled}:{asset?:Asset;label:string;
 }
 
 export function App({library}:{library:boolean}) {
+  const invoke=useLibraryInvoke();
   const [panelVisible,setPanelVisible]=useState(false);
   const [targetBound,setTargetBound]=useState(false);
   const [data,setData]=useState<Library>({cases:[],assets:[]});const [loaded,setLoaded]=useState(false);
@@ -118,7 +120,7 @@ export function App({library}:{library:boolean}) {
         if(disposed){visibility();return}unlisten.push(visibility);
         const esc=await listen<{registered:boolean;error:string|null}>('escape-status',e=>{if(!disposed){liveEscapeEvent.current=true;globalEscape.current=e.payload.registered;setEscapeError(e.payload.error)}});
         if(disposed){esc();return}unlisten.push(esc);
-        const b=await listen<Progress>('queue-progress',e=>{if(!disposed)acceptProgress(e.payload)});
+        const b=await listen<Progress&{generation:number}>('queue-progress',e=>{if(!disposed&&isCurrentLibraryGeneration(e.payload.generation))acceptProgress(e.payload)});
         if(disposed){b();return}unlisten.push(b);
         const writeFailed=await listen<{kind:string;error:string}>('library-write-failed',event=>setMetadataError(event.payload.error));if(disposed){writeFailed();return}unlisten.push(writeFailed);
         const changed=await listen('library-changed',refreshQuietly);if(disposed){changed();return}unlisten.push(changed);
@@ -139,8 +141,8 @@ export function App({library}:{library:boolean}) {
     };void attach();return()=>{disposed=true;libraryReads.current.invalidate();unlisten.forEach(fn=>fn());window.removeEventListener('focus',refreshQuietly)};
   },[]);
   useEffect(()=>{if(!loaded||!isTauri())return;let disposed=false;void invoke<Asset[]>('get_case_assets',{caseIds:items.map(record=>record.id)}).then(incoming=>{if(!disposed)setData(previous=>({...previous,assets:[...new Map([...previous.assets,...incoming].map(asset=>[asset.id,asset])).values()]}))}).catch(error=>{if(!disposed)setMessage(String(error))});return()=>{disposed=true}},[loaded,JSON.stringify(items.map(record=>[record.id,record.result,record.refs]))]);
-  const toggleFavorite=async(record:Case)=>{if(favoritePending.current.has(record.id))return;favoritePending.current.add(record.id);const favorite=!record.favorite;setData(previous=>({...previous,cases:previous.cases.map(item=>item.id===record.id?{...item,favorite}:item)}));try{await invoke('set_favorite',{caseId:record.id,favorite,generation:1})}catch(error){setData(previous=>({...previous,cases:previous.cases.map(item=>item.id===record.id?{...item,favorite:record.favorite}:item)}));setMessage('收藏保存失败：'+String(error));void refreshLibrary.current().catch(()=>{})}finally{favoritePending.current.delete(record.id)}};
-  const persistInterval=async()=>{intervalEditing.current=false;const value=Math.max(50,Math.min(10000,Number(intervalText)||data.uiPreferences?.quickIntervalMs||700));setIntervalMs(value);setIntervalText(String(value));intervalSaving.current=true;try{await invoke('set_ui_preferences',{generation:1,patch:{quickIntervalMs:value}})}catch(error){setMessage('间隔保存失败：'+String(error))}finally{intervalSaving.current=false;void refreshLibrary.current().catch(()=>{})}};
+  const toggleFavorite=async(record:Case)=>{if(favoritePending.current.has(record.id))return;favoritePending.current.add(record.id);const favorite=!record.favorite;setData(previous=>({...previous,cases:previous.cases.map(item=>item.id===record.id?{...item,favorite}:item)}));try{await invoke('set_favorite',{caseId:record.id,favorite})}catch(error){setData(previous=>({...previous,cases:previous.cases.map(item=>item.id===record.id?{...item,favorite:record.favorite}:item)}));setMessage('收藏保存失败：'+String(error));void refreshLibrary.current().catch(()=>{})}finally{favoritePending.current.delete(record.id)}};
+  const persistInterval=async()=>{intervalEditing.current=false;const value=Math.max(50,Math.min(10000,Number(intervalText)||data.uiPreferences?.quickIntervalMs||700));setIntervalMs(value);setIntervalText(String(value));intervalSaving.current=true;try{await invoke('set_ui_preferences',{patch:{quickIntervalMs:value}})}catch(error){setMessage('间隔保存失败：'+String(error))}finally{intervalSaving.current=false;void refreshLibrary.current().catch(()=>{})}};
   useEffect(()=>{
     if(!loaded||(!library&&(!wake||!panelVisible)))return;
     const sequence=++readySequence.current;

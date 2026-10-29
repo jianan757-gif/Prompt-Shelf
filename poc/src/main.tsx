@@ -1,5 +1,6 @@
 import React from 'react';
 import {createRoot} from 'react-dom/client';
+import {LibraryGenerationBoundary} from './LibraryGenerationBoundary';
 const library=new URLSearchParams(location.search).get('window')==='library';
 document.documentElement.dataset.window=library?'library':'quick';
 const root=createRoot(document.getElementById('root')!);
@@ -7,10 +8,10 @@ const root=createRoot(document.getElementById('root')!);
 if(library){
   await import('./library.css');
   const {LibraryManager}=await import('./library/LibraryManager');
-  root.render(<LibraryManager/>);
+  root.render(<LibraryGenerationBoundary><LibraryManager/></LibraryGenerationBoundary>);
 }else{
   await import('./quick.css');
   await import('./poc.css');
   const {App}=await import('./App');
-  root.render(<App library={false}/>);
+  root.render(<LibraryGenerationBoundary><App library={false}/></LibraryGenerationBoundary>);
 }

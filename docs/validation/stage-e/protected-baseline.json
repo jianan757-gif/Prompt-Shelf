@@ -1,0 +1,57 @@
+[
+  {
+    "path": "src/library/EditorImages.tsx",
+    "unchangedFromStageDTag": true,
+    "sha256": "6ee41215ac3f07c477b29aa928b2ffc2054acdedaf63662256614d096f81f59c"
+  },
+  {
+    "path": "src/library/CaseEditor.tsx",
+    "unchangedFromStageDTag": true,
+    "sha256": "79dd776eea9d3e3686f4eb8f22fc4790f0214aa7f8ee3c2bcd7bab166c2adbe1"
+  },
+  {
+    "path": "src/poc.css",
+    "unchangedFromStageDTag": true,
+    "sha256": "b62ebac8e1f9455a3285e549938ca2e945dfd0d7953a8f15762410777d740b59"
+  },
+  {
+    "path": "src/quick.css",
+    "unchangedFromStageDTag": true,
+    "sha256": "42be05a244ba0a15471045ae22c315efe34d0dceff864ee8694be7038eea90f9"
+  },
+  {
+    "path": "src/library.css",
+    "unchangedFromStageDTag": true,
+    "sha256": "48dc23c7dbd6ca3c81da9c1263ce06c15a8631559491fdf770efa3684d032597"
+  },
+  {
+    "path": "src/library-d.css",
+    "unchangedFromStageDTag": true,
+    "sha256": "5b36b7b061b5c6fbffc7e2074886a5f9b8913c0fb3b874ef126885a1870311a0"
+  },
+  {
+    "path": "src-tauri/src/queue.rs",
+    "unchangedFromStageDTag": true,
+    "sha256": "f05b34a03db923930db8d549e4849159317ac757c511bc4f08f02e3ad21678c9"
+  },
+  {
+    "path": "src-tauri/src/escape.rs",
+    "unchangedFromStageDTag": true,
+    "sha256": "8613a12ca0f001b708ab641a925953a398420eb332de252b307ba5b272620606"
+  },
+  {
+    "path": "src-tauri/src/platform/windows.rs",
+    "unchangedFromStageDTag": true,
+    "sha256": "4b8d63c9a19d5fb9dc6e30f28e390a9b2c6f4cfe8977469970ce791ec3a558d1"
+  },
+  {
+    "path": "src-tauri/src/migrations/001_initial.sql",
+    "unchangedFromStageDTag": true,
+    "sha256": "07498652cc5485dad9ff7c0deef6a89e14726589e398cd0483513d97fae4876f"
+  },
+  {
+    "path": "src-tauri/src/migrations/002_drafts.sql",
+    "unchangedFromStageDTag": true,
+    "sha256": "ca294001b758aad98dab38bdbcaaf06c75c7dd244463ec82142242d4b7b66899"
+  }
+]

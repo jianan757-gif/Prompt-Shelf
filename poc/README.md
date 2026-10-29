@@ -184,3 +184,34 @@ pnpm test:trash
 $env:PROMPT_SHELF_TEST_PHASE = 'stage-d'
 pnpm test:catalog
 ```
+
+## E ZIP 备份与整体恢复
+
+revision `4.4-e`，schema 保持 2。主库顶部“备份与恢复”打开 V5 弹窗：导出前先确认当前草稿已落盘，不强制正式保存；恢复预检后用严格 2×2 显示正常案例、回收站、标签、项目的“当前 → 备份”，草稿单列摘要。整体恢复替换当前资料库，保留上一完整库及其草稿；当前编辑须先保存/继续/放弃，预览后数据或草稿发生变化时更新计数并再次确认。文件名默认带日期时间，已有备份不覆盖；常见错误用中文说明。
+
+备份通过已有 rusqlite Online Backup API 包含 WAL 中已提交内容；仅在临时快照清除无引用资产行及候选状态，原图按有效 case_assets（含回收站）和 draft_assets 去重，以原字节写入 ZIP。包含分类、快捷顺序、词典、偏好、正式案例及草稿；不含缩略图、日志或临时文件。清单记录格式/应用/schema、日期、数量、各文件大小和 SHA-256。打包流式执行，不在整个 ZIP 阶段持 DB 锁；显示字节/文件进度并可取消。进入最终发布或切库短提交后明确禁用取消，避免已接受取消却仍提交。
+
+恢复入口一次验证 ZIP 条目/重复/链接/路径、版本、实际解压字节与可用空间、完整文件集合及 hash、图片格式/尺寸、数据库结构/完整性/外键和全部引用。只对临时库执行本应用已知 v1→2 迁移，不执行备份自带 SQL。预检成功产生内部 `PreparedRestore`，确认复用该对象；取消预览仅清理该已知临时目录。生产恢复不依赖 D 的宽松候选检查来代替预检。
+
+GUI 和 CLI 共用 `LibraryHost` 的根级锁及 active/previous 解析。首次兼容 A–D 平面目录，不搬移、不覆盖旧库；恢复后同根 `storage/<uuid>/` 保存整套 DB+assets，先同步 `active.previous.json`，再同目录原子替换 `active.json`。切换关闭旧 DB，旧目录保留，不在切换时删除 D 输出原图。指针坏或当前库坏时验证上一库回退且增加 generation；均无效时报恢复错误，不自动建空库。已有空/零版本 DB 也不会被当成首次启动初始化。
+
+维护门禁等待导入 worker 和队列实际结束，阻止新业务写入/导入/粘贴启动，普通读取可继续；已启动队列的首次派发记账允许收尾。锁顺序为 Host → 编辑会话 → 资源 → DB。IPC、编辑和缩略图授权都绑定真实 generation；恢复后撤销旧库授权、保留新库已授予文件，并重建两窗缓存/编辑/选择。旧 generation 迟到响应、写入和队列事件不能影响新库。后台 worker 才拥有维护和任务生命周期，取消/关闭前端不会提前释放。
+
+旧 D 程序不理解 E 的 active 布局；schema 同为 2 不等于旧程序能正确打开 E 数据根。指针只提供上一库回退，不提供历史版本管理；更旧及未激活 storage 目录保守留存，不扫描清理。不要用旧 D 程序操作已切库的 E 根目录。
+
+新增依赖锁定为 [zip 8.6.0](https://docs.rs/zip/8.6.0/zip/)（MIT，仅 Deflate 读取能力，导出 Stored）和 [fs2 0.4.3](https://docs.rs/fs2/0.4.3/fs2/fn.available_space.html)（MIT/Apache-2.0，用于可用空间查询），未升级原有依赖。新模块：`src-tauri/src/backup.rs`、`backup/`、`storage_host.rs`、`storage_host/`、`backup_commands.rs`；前端 `api.ts`、`LibraryGenerationBoundary.tsx`、`library/BackupDialog.tsx` 与局部 `library-e.css`。
+
+报告见 `reports/stage-e/`。ZIP64 已验证格式结构/大文件选项，未运行实际超过 4GiB 的实包。Windows 临时文件系统切换和自建 worker 强杀后重开已测，不代表真实断电；系统剪贴板、GUI/DPI 和真实目标应用接收仍待人工验收。最终 release 由主控使用 Tauri CLI 构建到 `src-tauri/target-stage-e`；不覆盖 D，不进入 F，不提交或推送。
+
+```powershell
+pnpm test
+pnpm build
+node scripts/check-ui-build.mjs stage-e
+cargo test --manifest-path src-tauri/Cargo.toml --locked --lib backup::tests --target-dir src-tauri/target-stage-e -- --nocapture
+cargo test --manifest-path src-tauri/Cargo.toml --locked --lib storage_host::tests --target-dir src-tauri/target-stage-e -- --nocapture
+cargo test --manifest-path src-tauri/Cargo.toml --locked --bin prompt-shelf-poc --target-dir src-tauri/target-stage-e -- --nocapture
+cargo test --manifest-path src-tauri/Cargo.toml --locked --test backup_cli --test scope_refresh --target-dir src-tauri/target-stage-e -- --nocapture
+cargo test --manifest-path src-tauri/Cargo.toml --locked --test browser_store --no-run --message-format=json --target-dir src-tauri/target-stage-e 1> reports/stage-e/browser-bridge-build.jsonl 2> reports/stage-e/browser-bridge-build.txt
+# PLAYWRIGHT_MODULE 可指定现成 Playwright 包；需已安装 Edge。
+pnpm test:backup
+```

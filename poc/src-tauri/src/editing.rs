@@ -3,10 +3,9 @@ use prompt_shelf_poc::{
     cases::{CaseDocument, EditReceipt, SavedCase},
     clipboard_input::{self, ClipboardImage},
     data,
-    scope::authorize_thumbnails,
 };
 use std::{io::Write, path::PathBuf};
-use tauri::{Emitter, Manager};
+use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -24,73 +23,39 @@ fn library_only(window: &tauri::WebviewWindow) -> Result<(), String> {
     }
 }
 #[tauri::command]
-pub async fn begin_case_edit(
-    app: tauri::AppHandle,
-    window: tauri::WebviewWindow,
-    case_id: Option<String>,
-) -> Result<EditReceipt, String> {
-    library_only(&window)?;
-    let state = app.state::<Runtime>();
-    let edits = state.edits.clone();
-    let store = state.store.clone();
-    let epoch = {let closing=state.closing.lock().map_err(|e|e.to_string())?;closing.editing_epoch(&edits)?};
-    tauri::async_runtime::spawn_blocking(move || {
-        edits.begin_persistent(&store, case_id.as_deref(), None, false, epoch)
-    })
-    .await
-    .map_err(|e| e.to_string())?
+pub async fn begin_case_edit(app:tauri::AppHandle,window:tauri::WebviewWindow,case_id:Option<String>,generation:u64)->Result<EditReceipt,String>{
+    library_only(&window)?;let state=app.state::<Runtime>();let edits=state.edits.clone();let host=state.host.clone();
+    let epoch={let closing=state.closing.lock().map_err(|e|e.to_string())?;closing.editing_epoch(&edits)?};
+    tauri::async_runtime::spawn_blocking(move||host.write(generation,|s|edits.begin_persistent(s,case_id.as_deref(),None,false,epoch))).await.map_err(|e|e.to_string())?
 }
 #[tauri::command]
-pub fn cancel_case_edit(
-    app: tauri::AppHandle,
-    window: tauri::WebviewWindow,
-    session_id: String,
-) -> Result<(), String> {
-    library_only(&window)?;
-    let state=app.state::<Runtime>();
-    state.edits.discard(&state.store,&session_id)
+pub fn cancel_case_edit(app:tauri::AppHandle,window:tauri::WebviewWindow,session_id:String,generation:u64)->Result<(),String>{
+    library_only(&window)?;let state=app.state::<Runtime>();state.host.write(generation,|s|state.edits.discard(s,&session_id))
 }
 #[tauri::command]
-pub async fn save_case_draft(app:tauri::AppHandle,window:tauri::WebviewWindow,session_id:String,document:CaseDocument,save_seq:u64)->Result<u64,String>{
-    library_only(&window)?;let state=app.state::<Runtime>();let edits=state.edits.clone();let store=state.store.clone();
-    tauri::async_runtime::spawn_blocking(move||edits.stash(&store,&session_id,&document,save_seq)).await.map_err(|e|e.to_string())?
+pub async fn save_case_draft(app:tauri::AppHandle,window:tauri::WebviewWindow,session_id:String,document:CaseDocument,save_seq:u64,generation:u64)->Result<u64,String>{
+    library_only(&window)?;let state=app.state::<Runtime>();let edits=state.edits.clone();let host=state.host.clone();
+    tauri::async_runtime::spawn_blocking(move||host.write(generation,|s|edits.stash(s,&session_id,&document,save_seq))).await.map_err(|e|e.to_string())?
 }
 #[tauri::command]
-pub async fn list_case_drafts(app:tauri::AppHandle,window:tauri::WebviewWindow)->Result<Vec<prompt_shelf_poc::drafts::DraftSummary>,String>{
-    library_only(&window)?;let store=app.state::<Runtime>().store.clone();tauri::async_runtime::spawn_blocking(move||store.draft_summaries()).await.map_err(|e|e.to_string())?
+pub async fn list_case_drafts(app:tauri::AppHandle,window:tauri::WebviewWindow,generation:u64)->Result<Vec<prompt_shelf_poc::drafts::DraftSummary>,String>{
+    library_only(&window)?;let host=app.state::<Runtime>().host.clone();tauri::async_runtime::spawn_blocking(move||host.read(generation,|s|s.draft_summaries())).await.map_err(|e|e.to_string())?
 }
 #[tauri::command]
-pub async fn recover_case_draft(app:tauri::AppHandle,window:tauri::WebviewWindow,draft_id:String,as_new:bool)->Result<EditReceipt,String>{
-    library_only(&window)?;let state=app.state::<Runtime>();let edits=state.edits.clone();let store=state.store.clone();let epoch={let closing=state.closing.lock().map_err(|e|e.to_string())?;closing.editing_epoch(&edits)?};
-    tauri::async_runtime::spawn_blocking(move||edits.begin_persistent(&store,None,Some(&draft_id),as_new,epoch)).await.map_err(|e|e.to_string())?
+pub async fn recover_case_draft(app:tauri::AppHandle,window:tauri::WebviewWindow,draft_id:String,as_new:bool,generation:u64)->Result<EditReceipt,String>{
+    library_only(&window)?;let state=app.state::<Runtime>();let edits=state.edits.clone();let host=state.host.clone();let epoch={let closing=state.closing.lock().map_err(|e|e.to_string())?;closing.editing_epoch(&edits)?};
+    tauri::async_runtime::spawn_blocking(move||host.write(generation,|s|edits.begin_persistent(s,None,Some(&draft_id),as_new,epoch))).await.map_err(|e|e.to_string())?
 }
 #[tauri::command]
-pub async fn discard_case_draft(app:tauri::AppHandle,window:tauri::WebviewWindow,draft_id:String)->Result<(),String>{
-    library_only(&window)?;let state=app.state::<Runtime>();let edits=state.edits.clone();let store=state.store.clone();
-    tauri::async_runtime::spawn_blocking(move||edits.discard_unopened(&store,&draft_id)).await.map_err(|e|e.to_string())?
+pub async fn discard_case_draft(app:tauri::AppHandle,window:tauri::WebviewWindow,draft_id:String,generation:u64)->Result<(),String>{
+    library_only(&window)?;let state=app.state::<Runtime>();let edits=state.edits.clone();let host=state.host.clone();
+    tauri::async_runtime::spawn_blocking(move||host.write(generation,|s|edits.discard_unopened(s,&draft_id))).await.map_err(|e|e.to_string())?
 }
 #[tauri::command]
-pub async fn commit_case(
-    app: tauri::AppHandle,
-    window: tauri::WebviewWindow,
-    session_id: String,
-    document: CaseDocument,
-) -> Result<SavedCase, String> {
-    library_only(&window)?;
-    let state = app.state::<Runtime>();
-    let edits = state.edits.clone();
-    let store = state.store.clone();
-    let saved =
-        tauri::async_runtime::spawn_blocking(move || edits.save(&store, &session_id, &document))
-            .await
-            .map_err(|e| e.to_string())??;
-    let revision = state
-        .library_revision
-        .fetch_add(1, std::sync::atomic::Ordering::AcqRel)
-        + 1;
-    state.log("case_saved",serde_json::json!({"caseId":saved.id,"editRevision":saved.edit_revision,"libraryRevision":revision}));
-    let _=app.emit("library-changed",serde_json::json!({"generation":1,"revision":revision,"entityIds":[saved.id],"reason":"case-saved"}));
-    Ok(saved)
+pub async fn commit_case(app:tauri::AppHandle,window:tauri::WebviewWindow,session_id:String,document:CaseDocument,generation:u64)->Result<SavedCase,String>{
+    library_only(&window)?;let state=app.state::<Runtime>();let edits=state.edits.clone();let host=state.host.clone();
+    let saved=tauri::async_runtime::spawn_blocking(move||host.write(generation,|s|edits.save(s,&session_id,&document))).await.map_err(|e|e.to_string())??;
+    state.log("case_saved",serde_json::json!({"caseId":saved.id,"editRevision":saved.edit_revision,"generation":generation}));crate::publish_change(&app,generation,"case-saved",vec![saved.id.clone()]);Ok(saved)
 }
 #[tauri::command]
 pub fn normalize_source_url(window: tauri::WebviewWindow, value: String) -> Result<String, String> {
@@ -106,14 +71,16 @@ pub async fn import_case_images(
     paths: Option<Vec<String>>,
     clipboard: bool,
     multiple: bool,
+    generation: u64,
 ) -> Result<Vec<ImportedImage>, String> {
     library_only(&window)?;
     let state = app.state::<Runtime>();
     state.edits.check(&session_id)?;
-    let store = state.store.clone();
+    let host = state.host.clone();
+    let grants = state.thumbnails.clone();
     let edits = state.edits.clone();
     let dialog_app = app.clone();
-    let images = tauri::async_runtime::spawn_blocking(move || {
+    let images = tauri::async_runtime::spawn_blocking(move || host.write(generation,|store| {
         edits.check(&session_id)?;
         let (paths, png) = if clipboard {
             match clipboard_input::read()? {
@@ -171,24 +138,12 @@ pub async fn import_case_images(
             });
         }
         edits.check(&session_id)?;
+        let snapshot=data::Library{cases:vec![],assets:images.iter().map(|image|image.asset.clone()).collect(),projects:vec![],tags:vec![],trash_count:0,ui_preferences:prompt_shelf_poc::catalog::default_preferences(),dictionary:vec![]};
+        grants.authorize(&dialog_app,store,&snapshot)?;
         Ok::<_, String>(images)
-    })
+    }))
     .await
-    .map_err(|e| e.to_string())??;
-    // Exact thumb grants only; originals stay private, including newly imported images.
-    authorize_thumbnails(
-        &app,
-        &state.store,
-        &data::Library {
-            cases: vec![],
-            assets: images.iter().map(|image| image.asset.clone()).collect(),
-            projects: vec![],
-            tags: vec![],
-            trash_count: 0,
-        ui_preferences: prompt_shelf_poc::catalog::default_preferences(),
-        dictionary: vec![],
-        },
-    )?;
+    .map_err(|e|e.to_string())??;
     Ok(images)
 }
 fn validate_import_count(multiple: bool, count: usize) -> Result<(), String> {

@@ -1,5 +1,7 @@
 # 公开验证证据
 
+- [E ZIP 备份与恢复](stage-e/results.json)：临时 SQLite/ZIP、切库中断、独立复测及 React 双窗测试；Windows 人工验收单列待测。
+
 - [B1 业务验证证据](b1-business/README.md)：SQLite/前端测试、最终构建及用户 Windows 业务清单与搜索框复测结果；分别说明自动化、静态检查和用户实测。
 
 本目录收录公开验证摘要。round5～round7 为历史证据副本；stage-a 为 4.4 本轮针对性验证。机器路径已脱敏；原始日志和私人截图留在本机。

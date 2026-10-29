@@ -1,6 +1,6 @@
 # D 回收站与安全清理交付记录
 
-2026-10-29。状态：实现与自动化验证完成，用户验收通过（第 7 项免人工测试），等待外部独立审核。
+2026-10-29。状态：用户验收及 ChatGPT 独立审核通过，D 正式结项。完整历史已合并 main（5b92cd4）；回退标签 baseline-stage-d 指向验收提交 6e2d3e7，未发布软件版本。
 
 ## 基线与范围
 
@@ -61,4 +61,4 @@
 
 项目根目录执行 `scripts/build-stage-d.ps1`，使用 Tauri CLI 正式资源协议；输出 `poc/src-tauri/target-stage-d/release/`，不覆盖 C 程序。构建日志和哈希保存在 `evidence/stage-d/`。构建已通过，正式 CLI 独立空库校验通过；96 份冻结源码核对一致。GUI SHA-256：`68319401D8F464D725B9DC365EDD7FA73ACB86816D79D0BC0DE6773DEC2B8606`。不发布软件版本。
 
-D 仅提交 `codex/4.4-d-trash`；main 保持已审核 C。用户验收已通过（第 7 项免人工测试），外部独立审核尚待完成；不将 D 标为最终结项，不进入 E/F。
+D 验收提交 `6e2d3e7` 已以保留历史的合并提交 `5b92cd4` 进入 main，回退标签为 `baseline-stage-d`。用户另行批准 E，开发在 `codex/4.4-e-backup`；本报告保留 D 验证范围，不将 E 工作计入 D。

@@ -1,0 +1,17 @@
+   Compiling prompt-shelf-poc v0.1.0 (<repo>\poc\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.83s
+     Running unittests src\lib.rs (poc/src-tauri/target-stage-e\debug\deps\prompt_shelf_poc-52d4cfdd42abb9b4.exe)
+
+running 10 tests
+test backup::tests::cancellation_and_commit_have_one_atomic_winner ... ok
+test backup::tests::zip64_entry_option_writes_zip64_local_header_without_allocating_multi_gigabyte_fixture ... ok
+test backup::tests::publishing_has_crossed_the_atomic_cancel_boundary_before_final_file_appears ... ok
+test backup::tests::duplicate_central_entry_is_not_hidden_by_zip_index_coalescing ... ok
+test backup::tests::restore_space_and_streamed_actual_bytes_are_bounded_and_cancellation_cleans_preview ... ok
+test backup::tests::restore_rejects_corrupt_zip_traversal_absolute_case_alias_and_symlink_entries ... ok
+test backup::tests::existing_destination_and_cancelled_export_do_not_publish_or_replace ... ok
+test backup::tests::restored_v1_runs_only_application_migration_in_temporary_database ... ok
+test backup::tests::round_trip_online_snapshot_carries_live_trash_draft_config_and_unique_originals_without_online_cleanup ... ok
+test backup::tests::restore_rejects_missing_hash_mismatch_future_unknown_schema_and_summary_without_touching_live ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 71 filtered out; finished in 0.39s

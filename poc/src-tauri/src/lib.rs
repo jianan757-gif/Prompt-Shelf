@@ -12,3 +12,5 @@ pub mod store;
 pub mod gc;
 pub mod trash;
 pub mod clipboard_gc;
+pub mod backup;
+pub mod storage_host;

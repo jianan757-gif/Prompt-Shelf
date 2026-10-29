@@ -1,0 +1,30 @@
+{
+  "dataDirectory": "<isolated-release-smoke-library>",
+  "first": {
+    "assets": 0,
+    "caseAssetReferences": 0,
+    "cases": 0,
+    "foreignKeys": "ok",
+    "integrity": "ok",
+    "originalHashes": "ok",
+    "recoverablePendingMissing": 0,
+    "recoverablePendingMissingIds": [],
+    "schemaVersion": 2,
+    "sqliteVersion": "3.54.1"
+  },
+  "reopened": {
+    "assets": 0,
+    "caseAssetReferences": 0,
+    "cases": 0,
+    "foreignKeys": "ok",
+    "integrity": "ok",
+    "originalHashes": "ok",
+    "recoverablePendingMissing": 0,
+    "recoverablePendingMissingIds": [],
+    "schemaVersion": 2,
+    "sqliteVersion": "3.54.1"
+  },
+  "matchedSourceFiles": 108,
+  "gui": "NOT_RUN",
+  "status": "PASS"
+}

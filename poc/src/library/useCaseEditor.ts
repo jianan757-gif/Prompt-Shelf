@@ -1,12 +1,15 @@
 import {useEffect,useRef,useState} from 'react';
-import {invoke,isTauri} from '@tauri-apps/api/core';
+import {isTauri} from '@tauri-apps/api/core';
+import {useLibraryInvoke} from '../api';
 import {getCurrentWebview} from '@tauri-apps/api/webview';
 import {attachImages,hasClipboardImage,ImportAuthority,moveReference,parseTags,removeImage} from './editor';
 import {DraftClock,contentKey} from './draftSafety';
 import type {CaseDocument,EditReceipt,ImportedImage,Slot} from './editor';
 
 export interface EditorState extends EditReceipt {tagsText:string;selected:Slot;pending:boolean;saving:boolean;canceling?:boolean;images:ImportedImage[];dirty:boolean;seq:number;protectedSeq:number;draftError:string;baseline:string}
-export function useCaseEditor(notice:(text:string)=>void,onSaved:(id:string)=>Promise<void>){
+export function useCaseEditor(notice:(text:string)=>void,onSaved:(id:string)=>Promise<void>,inputSuspended=false){
+  const invoke=useLibraryInvoke();
+  const suspended=useRef(inputSuspended);suspended.current=inputSuspended;
   const [state,setState]=useState<EditorState|null>(null);const current=useRef<EditorState|null>(null);const opening=useRef(false);const authority=useRef(new ImportAuthority());
   const [confirmation,setConfirmation]=useState(false);const [resolving,setResolving]=useState(false);const resolvingRef=useRef(false);const continuation=useRef<{action:()=>void;stay?:()=>void}|null>(null);
   const clock=useRef<DraftClock|null>(null);const stashRef=useRef<()=>Promise<boolean>>(async()=>false);
@@ -65,24 +68,25 @@ export function useCaseEditor(notice:(text:string)=>void,onSaved:(id:string)=>Pr
   const request=(action:()=>void,stay?:()=>void)=>{if(resolvingRef.current)return;if(opening.current){notice('编辑器正在打开，请稍后重试');stay?.();return}const active=current.current;if(!active){action();return}if(active.saving){notice('正在处理当前编辑，请稍后重试');stay?.();return}if(active.dirty||active.pending){continuation.current={action,stay};setConfirmation(true)}else{void discard().then(ok=>{if(ok)action();else stay?.()})}};
   const resolve=async(choice:'save'|'discard'|'continue')=>{const next=continuation.current;if(!next||resolvingRef.current||current.current?.saving)return;if(choice==='continue'){continuation.current=null;setConfirmation(false);next.stay?.();return}if(choice==='save'&&current.current?.pending){notice('请等待图片导入完成');return}
     resolvingRef.current=true;setResolving(true);try{const ok=choice==='save'?await save():await discard();if(ok){continuation.current=null;setConfirmation(false);next.action()}}finally{resolvingRef.current=false;setResolving(false)}};
+  const flushForBackup=async()=>{const active=current.current;if(opening.current||active?.pending||active?.saving){notice('请等待当前编辑或图片操作完成后再备份');return false}clock.current!.stop();if(!active)return true;return stash()};
   const cancel=()=>request(()=>{});
   const recover=async(draftId:string,asNew=false)=>{if(busy())return false;opening.current=true;try{install(await invoke<EditReceipt>('recover_case_draft',{draftId,asNew}),undefined,true);notice('已恢复草稿，请确认后正式保存');return true}catch(error){notice(String(error));return false}finally{opening.current=false}};
   const handlers=useRef({importImages,cancel});handlers.current={importImages,cancel};
   useEffect(()=>{
     if(!isTauri())return;let disposed=false;let stop:(()=>void)|undefined;
     void getCurrentWebview().onDragDropEvent(event=>{
-      if(event.payload.type!=='drop'||!current.current)return;
+      if(event.payload.type!=='drop'||!current.current||suspended.current)return;
       const position=event.payload.position.toLogical(devicePixelRatio);const target=document.elementFromPoint(position.x,position.y)?.closest<HTMLElement>('[data-edit-slot]');
       void handlers.current.importImages(target?.dataset.editSlot??'append',event.payload.paths);
     }).then(unlisten=>{if(disposed)unlisten();else stop=unlisten}).catch(error=>notice(String(error)));
     const paste=(event:ClipboardEvent)=>{
-      if(!current.current||!event.clipboardData)return;
+      if(!current.current||!event.clipboardData||suspended.current)return;
       if(!hasClipboardImage([...event.clipboardData.types],[...event.clipboardData.items]))return;
       event.preventDefault();void handlers.current.importImages(undefined,undefined,true);
     };
     document.addEventListener('paste',paste,true);
     return()=>{disposed=true;stop?.();document.removeEventListener('paste',paste,true);authority.current.end();clock.current?.stop()};
   },[]);
-  return {state,begin,change,select,remove,reorder,importImages,cancel,save,normalizeSource,busy,request,confirmation,resolving,resolve,recover,
+  return {state,begin,change,select,remove,reorder,importImages,cancel,save,normalizeSource,busy,request,confirmation,resolving,resolve,recover,flushForBackup,
     setTagsText:(tagsText:string)=>{const active=current.current;if(active&&!active.saving)mutate({...active,tagsText})}};
 }

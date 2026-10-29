@@ -5,12 +5,15 @@ mod queue;
 mod editing;
 mod catalog_commands;
 mod trash_commands;
+mod backup_commands;
+use backup_commands::{get_library_context,backup_summary,backup_export,backup_inspect,backup_refresh_preview,backup_restore,backup_cancel,backup_release_preview};
 use trash_commands::{soft_delete_case,restore_case,permanently_delete_case,get_case_delete_draft,get_trash_index,get_trash_assets};
 #[cfg(test)]mod usage_queue_tests;
 #[cfg(test)]mod trash_queue_tests;
 use catalog_commands::{catalog_create,catalog_rename,catalog_delete,set_quick_tag,reorder_quick_tags,set_favorite,set_ui_preferences,save_dictionary,get_library_index,get_case_assets};
 use editing::{begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url,save_case_draft,list_case_drafts,recover_case_draft,discard_case_draft};
-use prompt_shelf_poc::{data,paths::DataPaths,store::Store,scope::authorize_thumbnails};
+use prompt_shelf_poc::{data,storage_host::LibraryHost,scope::ThumbnailGrants};
+#[cfg(test)]use prompt_shelf_poc::{paths::DataPaths,store::Store};
 use platform::{NativePlatform, PasteItem, PastePlatform};
 use std::{
     io::Write,
@@ -29,15 +32,16 @@ use tauri::{
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 type Target = <NativePlatform as PastePlatform>::Target;
-const BUILD_REVISION: &str = "4.4-d";
+const BUILD_REVISION: &str = "4.4-e";
 struct Runtime {
     platform: Arc<NativePlatform>,
     queue: Arc<queue::Queue>,
     escape: Mutex<escape::EscapeSession>,
     target: Mutex<Option<Target>>,
-    store: Arc<Store>,
+    host: Arc<LibraryHost>,
+    thumbnails: Arc<ThumbnailGrants>,
+    backups: Arc<backup_commands::BackupJobs>,
     edits: Arc<prompt_shelf_poc::cases::EditSessions>,
-    library_revision: AtomicU64,
     closing: Mutex<prompt_shelf_poc::closing::CloseProtocol>,
     allow_exit: std::sync::atomic::AtomicBool,
     log: Mutex<std::fs::File>,
@@ -57,7 +61,7 @@ impl Runtime {
         }
     }
 }
-fn publish_change(app:&tauri::AppHandle,reason:&str,entity_ids:Vec<String>){let state=app.state::<Runtime>();let revision=state.library_revision.fetch_add(1,Ordering::AcqRel)+1;let _=app.emit("library-changed",serde_json::json!({"generation":1,"revision":revision,"entityIds":entity_ids,"reason":reason}));}
+fn publish_change(app:&tauri::AppHandle,generation:u64,reason:&str,entity_ids:Vec<String>){let state=app.state::<Runtime>();if let Ok(context)=state.host.context(){if context.generation==generation{let _=app.emit("library-changed",serde_json::json!({"generation":generation,"revision":context.revision,"entityIds":entity_ids,"reason":reason}));}}}
 fn can_preserve_previous(from_hotkey: bool, error: &str) -> bool {
     from_hotkey && error == "quick_panel_keep_previous_target"
 }
@@ -101,8 +105,8 @@ fn handle_escape(app: &tauri::AppHandle, source: escape::Source, pressed: bool, 
     }
 }
 #[tauri::command]
-fn panel_escape(app: tauri::AppHandle, pressed: bool, repeat: bool) -> Result<(), String> {
-    handle_escape(&app,escape::Source::Local,pressed,repeat)
+fn panel_escape(app: tauri::AppHandle, pressed: bool, repeat: bool,generation:u64) -> Result<(), String> {
+    app.state::<Runtime>().host.read(generation,|_|handle_escape(&app,escape::Source::Local,pressed,repeat))
 }
 fn wake(app: &tauri::AppHandle, tab: &str, from_hotkey: bool) {
     let state = app.state::<Runtime>();
@@ -165,14 +169,12 @@ fn wake(app: &tauri::AppHandle, tab: &str, from_hotkey: bool) {
     }
 }
 #[tauri::command]
-async fn get_library(app: tauri::AppHandle, state: tauri::State<'_,Runtime>) -> Result<data::Library,String> {
-    let store=state.store.clone();
-    let library=tauri::async_runtime::spawn_blocking(move||store.library()).await.map_err(|e|e.to_string())??;
-    authorize_thumbnails(&app,&state.store,&library)?;
-    Ok(library)
+async fn get_library(app: tauri::AppHandle, state: tauri::State<'_,Runtime>,generation:u64) -> Result<data::Library,String> {
+    let host=state.host.clone();let grants=state.thumbnails.clone();
+    tauri::async_runtime::spawn_blocking(move||host.read(generation,|store|{let library=store.library()?;grants.authorize(&app,store,&library)?;Ok(library)})).await.map_err(|e|e.to_string())?
 }
 #[tauri::command]
-fn get_boot(window: tauri::WebviewWindow, state: tauri::State<Runtime>) -> serde_json::Value {
+fn get_boot(window: tauri::WebviewWindow, state: tauri::State<Runtime>) -> Result<serde_json::Value,String> {
     let pending = if window.label() == "quick_panel" {
         state
             .wake
@@ -184,7 +186,8 @@ fn get_boot(window: tauri::WebviewWindow, state: tauri::State<Runtime>) -> serde
         None
     };
     let session = state.escape.lock().unwrap();
-    serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-d","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"libraryRevision":state.library_revision.load(Ordering::Acquire),"generation":1,"escapeRegistered":session.registered,"escapeError":session.error})
+    let context=state.host.context()?;
+    Ok(serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-e","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"libraryRevision":context.revision,"generation":context.generation,"escapeRegistered":session.registered,"escapeError":session.error}))
 }
 #[tauri::command]
 async fn search_ready(
@@ -194,9 +197,10 @@ async fn search_ready(
     result_count: usize,
     sequence: u64,
     superseded: bool,
+    generation: u64,
 ) -> Result<(), String> {
-    let store=state.store.clone();
-    let (cases,assets)=tauri::async_runtime::spawn_blocking(move||store.counts()).await.map_err(|e|e.to_string())??;
+    let host=state.host.clone();
+    let (cases,assets)=tauri::async_runtime::spawn_blocking(move||host.read(generation,|s|s.counts())).await.map_err(|e|e.to_string())??;
     if !elapsed_ms.is_finite() || elapsed_ms < 0.0 || result_count > cases {
         return Err("invalid_search_measurement".into());
     }
@@ -232,16 +236,16 @@ fn hide_panel(app: tauri::AppHandle) -> Result<(), String> {
     close_panel(&app)
 }
 #[tauri::command]
-fn cancel_queue(state: tauri::State<Runtime>) -> bool {
-    state.queue.cancel()
+fn cancel_queue(state: tauri::State<Runtime>,generation:u64) -> Result<bool,String> {
+    state.host.read(generation,|_|Ok(state.queue.cancel()))
 }
 #[tauri::command]
-fn panel_interaction(state: tauri::State<Runtime>, request_id: u64) -> bool {
-    let cancelled = state.queue.cancel_request(request_id);
+fn panel_interaction(state: tauri::State<Runtime>, request_id: u64,generation:u64) -> Result<bool,String> {
+    state.host.read(generation,|_|{let cancelled = state.queue.cancel_request(request_id);
     if cancelled {
         state.log("panel_interaction",serde_json::json!({"requestId":request_id,"action":"cancel_pending_request_keep_panel_and_binding"}));
     }
-    cancelled
+    Ok(cancelled)})
 }
 #[tauri::command]
 async fn open_library(app: tauri::AppHandle) -> Result<(), String> {
@@ -354,6 +358,7 @@ async fn paste(
     index: Option<usize>,
     interval_ms: u64,
     expected_revision: u64,
+    generation: u64,
 ) -> Result<u64, String> {
     if window.label() != "quick_panel" {
         return Err("paste_only_from_quick_panel".into());
@@ -370,13 +375,13 @@ async fn paste(
     if !state.escape.lock().unwrap().can_paste() {
         return Err("global_escape_unavailable_no_paste: 请重新呼出面板以注册全局 Esc".into());
     }
-    let ticket=state.queue.reserve()?;
-    let store=state.store.clone();let lookup_id=case_id.clone();let lookup_kind=kind.clone();
-    let prepared=tauri::async_runtime::spawn_blocking(move||{
-        let library=store.output_snapshot_at_revision(&lookup_id,expected_revision)?;
-        paste_items(&library,&lookup_id,&lookup_kind,index)
-    }).await.map_err(|e|e.to_string()).and_then(|result|result);
-    let items=match prepared {Ok(items)=>items,Err(error)=>{state.queue.release();return Err(error)}};
+    let host=state.host.clone();let queue=state.queue.clone();let lookup_id=case_id.clone();let lookup_kind=kind.clone();
+    let prepared=tauri::async_runtime::spawn_blocking(move||host.write(generation,|store|{
+        let ticket=queue.reserve()?;
+        let result=store.output_snapshot_at_revision(&lookup_id,expected_revision).and_then(|library|paste_items(&library,&lookup_id,&lookup_kind,index));
+        match result{Ok(items)=>Ok((ticket,items)),Err(error)=>{queue.release();Err(error)}}
+    })).await.map_err(|e|e.to_string())?;
+    let (ticket,items)=prepared?;
     let id = ticket.id;
     let platform = state.platform.clone();
     let queue = state.queue.clone();
@@ -391,8 +396,8 @@ async fn paste(
             items,
             Duration::from_millis(interval_ms),
             |event| {
-                if let Some(result)=usage.observe(event.done,||app.state::<Runtime>().store.record_use(&event.case_id)){
-                    match result{Ok(())=>publish_change(&app,"case-used",vec![event.case_id.clone()]),Err(error)=>{app.state::<Runtime>().log("recent_write_failed",serde_json::json!({"requestId":event.request_id,"caseId":event.case_id,"error":error}));let _=app.emit("library-write-failed",serde_json::json!({"kind":"recent","error":format!("已触发粘贴，但最近使用记录未保存：{error}；不会重复派发") }));}}
+                if let Some(result)=usage.observe(event.done,||app.state::<Runtime>().host.ongoing_write(generation,|s|s.record_use(&event.case_id))){
+                    match result{Ok(())=>publish_change(&app,generation,"case-used",vec![event.case_id.clone()]),Err(error)=>{app.state::<Runtime>().log("recent_write_failed",serde_json::json!({"requestId":event.request_id,"caseId":event.case_id,"error":error}));let _=app.emit("library-write-failed",serde_json::json!({"kind":"recent","error":format!("已触发粘贴，但最近使用记录未保存：{error}；不会重复派发") }));}}
                 }
                 app.state::<Runtime>()
                     .log("queue", serde_json::to_value(&event).unwrap());
@@ -405,7 +410,7 @@ async fn paste(
                     if let Some(status)=app.state::<Runtime>().tray_status.lock().unwrap().as_ref(){let _=status.set_text(&label);}
                     if let Some(tray)=app.tray_by_id("main"){let _=tray.set_tooltip(Some(&label));}
                 }
-                let _ = app.emit("queue-progress", event);
+                let mut payload=serde_json::to_value(event).unwrap();payload["generation"]=serde_json::json!(generation);let _ = app.emit("queue-progress", payload);
             },
         ).await;
         queue.release();
@@ -453,7 +458,7 @@ fn main() {
             for (code,tab) in [(Code::Digit1,"all"),(Code::Digit2,"recent"),(Code::Digit3,"fav")]{if shortcut.matches(Modifiers::CONTROL|Modifiers::ALT,code){wake(app,tab,true);return;}}
         }).build())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![get_library,get_boot,ready,search_ready,hide_panel,panel_escape,cancel_queue,panel_interaction,open_library,close_library,window_action,paste,begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url,save_case_draft,list_case_drafts,recover_case_draft,discard_case_draft,pending_library_close,cancel_library_close,finish_library_close,catalog_create,catalog_rename,catalog_delete,set_quick_tag,reorder_quick_tags,set_favorite,set_ui_preferences,save_dictionary,get_library_index,get_case_assets,soft_delete_case,restore_case,permanently_delete_case,get_case_delete_draft,get_trash_index,get_trash_assets])
+        .invoke_handler(tauri::generate_handler![get_library,get_boot,ready,search_ready,hide_panel,panel_escape,cancel_queue,panel_interaction,open_library,close_library,window_action,paste,begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url,save_case_draft,list_case_drafts,recover_case_draft,discard_case_draft,pending_library_close,cancel_library_close,finish_library_close,catalog_create,catalog_rename,catalog_delete,set_quick_tag,reorder_quick_tags,set_favorite,set_ui_preferences,save_dictionary,get_library_index,get_case_assets,soft_delete_case,restore_case,permanently_delete_case,get_case_delete_draft,get_trash_index,get_trash_assets,get_library_context,backup_summary,backup_export,backup_inspect,backup_refresh_preview,backup_restore,backup_cancel,backup_release_preview])
         .setup(|app|{
             let mut arguments=std::env::args_os().skip(1);let mut override_directory=None;
             while let Some(argument)=arguments.next(){
@@ -461,18 +466,15 @@ fn main() {
                 else{return Err("GUI usage: prompt-shelf-poc [--data-dir <directory>]; offline import uses prompt-shelf-store".into());}
             }
             let root=override_directory.unwrap_or(app.path().app_local_data_dir()?);
-            let store=tauri::async_runtime::block_on(tauri::async_runtime::spawn_blocking(move||Store::open(DataPaths::new(&root)?))).map_err(std::io::Error::other)?.map_err(std::io::Error::other)?;
-            let gc=prompt_shelf_poc::clipboard_gc::startup_gc(&store).map_err(std::io::Error::other)?;
-            let store=Arc::new(store);let directory=store.paths().logs();
+            let host=tauri::async_runtime::block_on(tauri::async_runtime::spawn_blocking(move||LibraryHost::open(&root))).map_err(std::io::Error::other)?.map_err(std::io::Error::other)?;
+            let context=host.context().map_err(std::io::Error::other)?;
+            let (gc,directory,case_count,asset_count)=host.read(context.generation,|store|{let gc=prompt_shelf_poc::clipboard_gc::startup_gc(store)?;let (cases,assets)=store.counts()?;Ok((gc,store.paths().logs(),cases,assets))}).map_err(std::io::Error::other)?;
+            let host=Arc::new(host);
             let log_path=directory.join("poc.jsonl");let log=std::fs::OpenOptions::new().create(true).append(true).open(&log_path)?;
-            let reader=store.clone();
-            let library=tauri::async_runtime::block_on(tauri::async_runtime::spawn_blocking(move||reader.library_index())).map_err(std::io::Error::other)?.map_err(std::io::Error::other)?;
-            authorize_thumbnails(app.handle(),&store,&library).map_err(std::io::Error::other)?;
-            let (case_count,asset_count)=store.counts().map_err(std::io::Error::other)?;
             let platform=Arc::new(NativePlatform::default());
             #[cfg(target_os="windows")]
             if let Some(window)=app.get_webview_window("quick_panel"){platform.attach_window(&window)?;}
-            let runtime=Runtime{platform,queue:Arc::new(queue::Queue::default()),escape:Mutex::new(escape::EscapeSession::default()),target:Mutex::new(None),store,edits:Arc::new(prompt_shelf_poc::cases::EditSessions::default()),library_revision:AtomicU64::new(0),closing:Mutex::new(Default::default()),allow_exit:std::sync::atomic::AtomicBool::new(false),log:Mutex::new(log),log_path,token:AtomicU64::new(1),wake:Mutex::new(None),library_start:Mutex::new(None),library_creating:Mutex::new(false),tray_status:Mutex::new(None)};
+            let runtime=Runtime{platform,queue:Arc::new(queue::Queue::default()),escape:Mutex::new(escape::EscapeSession::default()),target:Mutex::new(None),host,thumbnails:Arc::new(ThumbnailGrants::default()),backups:Arc::new(backup_commands::BackupJobs::default()),edits:Arc::new(prompt_shelf_poc::cases::EditSessions::default()),closing:Mutex::new(Default::default()),allow_exit:std::sync::atomic::AtomicBool::new(false),log:Mutex::new(log),log_path,token:AtomicU64::new(1),wake:Mutex::new(None),library_start:Mutex::new(None),library_creating:Mutex::new(false),tray_status:Mutex::new(None)};
             runtime.log("startup",serde_json::json!({"cases":case_count,"assets":asset_count,"exe":std::env::current_exe().ok(),"revision":BUILD_REVISION,"platform":std::env::consts::OS,"resourceThreshold":"baseline_only_not_approved"}));
             runtime.log("startup_gc",serde_json::to_value(&gc)?);
             app.manage(runtime);
@@ -491,7 +493,7 @@ fn main() {
         .on_window_event(|window,event|{
             if let tauri::WindowEvent::Focused(true)=event{if window.label()=="quick_panel"{if let Some(state)=window.try_state::<Runtime>(){if state.platform.panel_is_foreground()&&state.queue.cancel_panel_refocus(){state.log("panel_refocused",serde_json::json!({"action":"cancel_request_no_refocus_target"}));}}}}
             if let tauri::WindowEvent::CloseRequested{api,..}=event{if window.label()=="quick_panel"{api.prevent_close();let _=close_panel(window.app_handle());}else if window.label()=="library_manager"{api.prevent_close();let _=request_close(window.app_handle(),"close");}}
-            if let tauri::WindowEvent::Destroyed=event{if window.label()=="library_manager"{let state=window.state::<Runtime>();*state.library_creating.lock().unwrap()=false;state.edits.clear();state.closing.lock().unwrap().reset();state.log("library_window_destroyed",serde_json::json!({}));}}
+            if let tauri::WindowEvent::Destroyed=event{if window.label()=="library_manager"{let state=window.state::<Runtime>();*state.library_creating.lock().unwrap()=false;state.edits.clear();state.backups.window_closed();state.closing.lock().unwrap().reset();state.log("library_window_destroyed",serde_json::json!({}));}}
         })
         .build(tauri::generate_context!()).expect("PoC startup failed: check hotkey conflicts and manifest paths")
         .run(|app,event|{if let tauri::RunEvent::ExitRequested{api,..}=event{if !app.state::<Runtime>().allow_exit.load(Ordering::Acquire){api.prevent_exit();let _=request_close(app,"exit");}}});
