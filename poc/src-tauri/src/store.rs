@@ -9,6 +9,7 @@ use std::{
 };
 
 pub const SCHEMA_VERSION: i64 = 2;
+type AssetRow=(String,String,String,u32,u32);
 const INITIAL: &str = include_str!("migrations/001_initial.sql");
 pub struct Store {
     pub(crate) connection: Mutex<Connection>,
@@ -224,12 +225,14 @@ impl Store {
     pub fn library(&self) -> Result<data::Library, String> {
         self.project(None, true)
     }
+    pub fn library_index(&self) -> Result<data::Library,String> { self.project_inner(None,false,false) }
     pub fn case_snapshot(&self, case_id: &str) -> Result<data::Library, String> {
         self.project(Some(case_id), false)
     }
-    fn project(&self, case_id: Option<&str>, thumbnails: bool) -> Result<data::Library, String> {
+    fn project(&self, case_id: Option<&str>, thumbnails: bool) -> Result<data::Library, String> { self.project_inner(case_id,thumbnails,true) }
+    fn project_inner(&self, case_id: Option<&str>, thumbnails: bool, include_assets:bool) -> Result<data::Library, String> {
         let connection = self.connection.lock().map_err(|e| e.to_string())?;
-        let mut statement=connection.prepare("SELECT c.id,c.title,c.prompt,coalesce(p.name,''),c.favorite,c.use_count,c.source_url,c.created_at,c.updated_at,c.last_used_at,c.edit_revision FROM cases c LEFT JOIN projects p ON p.id=c.project_id WHERE c.deleted_at IS NULL AND (?1 IS NULL OR c.id=?1) ORDER BY c.created_at DESC,c.id").map_err(sql)?;
+        let mut statement=connection.prepare("SELECT c.id,c.title,c.prompt,coalesce(p.name,''),c.favorite,c.use_count,c.source_url,c.created_at,c.updated_at,c.last_used_at,c.edit_revision,c.project_id FROM cases c LEFT JOIN projects p ON p.id=c.project_id WHERE c.deleted_at IS NULL AND (?1 IS NULL OR c.id=?1) ORDER BY c.created_at DESC,c.id").map_err(sql)?;
         let mut cases = statement
             .query_map([case_id], |r| {
                 Ok(data::Case {
@@ -240,6 +243,7 @@ impl Store {
                     favorite: r.get(4)?,
                     used: r.get::<_, i64>(5)? as u64,
                     source_url:r.get(6)?,created_at:r.get(7)?,updated_at:r.get(8)?,last_used_at:r.get(9)?,edit_revision:r.get::<_,i64>(10)? as u64,
+                    project_id:r.get(11)?,tag_ids:vec![],
                     tags: vec![],
                     result: None,
                     refs: vec![],
@@ -250,12 +254,10 @@ impl Store {
             .map_err(sql)?;
         drop(statement);
         for case in &mut cases {
-            let mut tags=connection.prepare("SELECT t.name FROM case_tags ct JOIN tags t ON t.id=ct.tag_id WHERE ct.case_id=?1 ORDER BY ct.position").map_err(sql)?;
-            case.tags = tags
-                .query_map([&case.id], |r| r.get(0))
-                .map_err(sql)?
-                .collect::<Result<_, _>>()
-                .map_err(sql)?;
+            let mut tags=connection.prepare("SELECT t.name,t.id FROM case_tags ct JOIN tags t ON t.id=ct.tag_id WHERE ct.case_id=?1 ORDER BY ct.position").map_err(sql)?;
+            let pairs=tags.query_map([&case.id],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?))).map_err(sql)?.collect::<Result<Vec<_>,_>>().map_err(sql)?;
+            case.tags=pairs.iter().map(|(name,_)|name.clone()).collect();
+            case.tag_ids=pairs.into_iter().map(|(_,id)|id).collect();
             let mut images = connection
                 .prepare(
                     "SELECT asset_id,role FROM case_assets WHERE case_id=?1 ORDER BY role,position",
@@ -275,8 +277,9 @@ impl Store {
                 }
             }
         }
-        let mut statement=connection.prepare("SELECT a.id,a.sha256,a.relative_path,a.width,a.height FROM assets a WHERE ?1 IS NULL OR EXISTS(SELECT 1 FROM case_assets ca WHERE ca.asset_id=a.id AND ca.case_id=?1)").map_err(sql)?;
-        let rows = statement
+        let rows = if include_assets {
+            let mut statement=connection.prepare("SELECT a.id,a.sha256,a.relative_path,a.width,a.height FROM assets a WHERE ?1 IS NULL OR EXISTS(SELECT 1 FROM case_assets ca WHERE ca.asset_id=a.id AND ca.case_id=?1)").map_err(sql)?;
+            let rows = statement
             .query_map([case_id], |r| {
                 Ok((
                     r.get::<_, String>(0)?,
@@ -289,11 +292,33 @@ impl Store {
             .map_err(sql)?
             .collect::<Result<Vec<_>, _>>()
             .map_err(sql)?;
-        drop(statement);
-        let projects=if case_id.is_none(){view_catalog(&connection,"SELECT id,name,created_at,0,sort_order FROM projects ORDER BY sort_order,created_at,id")?}else{vec![]};
-        let tags=if case_id.is_none(){view_catalog(&connection,"SELECT id,name,created_at,is_quick,quick_order FROM tags ORDER BY quick_order,created_at,id")?}else{vec![]};
+            drop(statement);
+            rows
+        } else {vec![]};
+        let projects=if case_id.is_none(){view_catalog(&connection,"SELECT id,name,created_at,0,sort_order,sort_order FROM projects ORDER BY sort_order,created_at,id")?}else{vec![]};
+        let tags=if case_id.is_none(){view_catalog(&connection,"SELECT id,name,created_at,is_quick,quick_order,sort_order FROM tags ORDER BY quick_order,created_at,id")?}else{vec![]};
         let trash_count=if case_id.is_none(){connection.query_row("SELECT count(*) FROM cases WHERE deleted_at IS NOT NULL",[],|r|r.get::<_,i64>(0)).map_err(sql)? as u64}else{0};
+        let ui_preferences=crate::catalog::preferences_from(&connection)?;
+        let dictionary=crate::catalog::dictionary_from(&connection)?;
         drop(connection);
+        let output=self.asset_projection(rows,thumbnails)?;
+        Ok(data::Library {
+            cases,
+            assets: output,
+            projects,tags,trash_count,ui_preferences,dictionary,
+        })
+    }
+    pub fn assets_for_cases(&self,ids:&[String])->Result<Vec<data::Asset>,String>{
+        if ids.len()>120{return Err("case_asset_batch_too_large".into())}if ids.is_empty(){return Ok(vec![])}
+        let connection=self.connection.lock().map_err(|e|e.to_string())?;
+        let placeholders=(1..=ids.len()).map(|n|format!("?{n}")).collect::<Vec<_>>().join(",");
+        let query=format!("SELECT DISTINCT a.id,a.sha256,a.relative_path,a.width,a.height FROM assets a JOIN case_assets ca ON ca.asset_id=a.id JOIN cases c ON c.id=ca.case_id WHERE c.deleted_at IS NULL AND c.id IN ({placeholders}) ORDER BY a.id");
+        let mut statement=connection.prepare(&query).map_err(sql)?;
+        let rows=statement.query_map(rusqlite::params_from_iter(ids),|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?))).map_err(sql)?.collect::<Result<Vec<AssetRow>,_>>().map_err(sql)?;
+        drop(statement);drop(connection);
+        self.asset_projection(rows,true)
+    }
+    fn asset_projection(&self,rows:Vec<AssetRow>,thumbnails:bool)->Result<Vec<data::Asset>,String>{
         // Decoding and filesystem work never hold the database connection mutex.
         let mut output = vec![];
         for (id, hash, relative, width, height) in rows {
@@ -312,11 +337,7 @@ impl Store {
                 height,
             });
         }
-        Ok(data::Library {
-            cases,
-            assets: output,
-            projects,tags,trash_count,
-        })
+        Ok(output)
     }
     pub fn check(&self) -> Result<serde_json::Value, String> {
         let connection = self.connection.lock().map_err(|e| e.to_string())?;
@@ -355,7 +376,7 @@ impl Store {
 }
 fn view_catalog(connection:&Connection,query:&str)->Result<Vec<data::CatalogItem>,String>{
     let mut statement=connection.prepare(query).map_err(sql)?;
-    let rows=statement.query_map([],|r|Ok(data::CatalogItem{id:r.get(0)?,name:r.get(1)?,created_at:r.get(2)?,is_quick:r.get(3)?,quick_order:r.get(4)?})).map_err(sql)?.collect::<Result<Vec<_>,_>>().map_err(sql)?;
+    let rows=statement.query_map([],|r|Ok(data::CatalogItem{id:r.get(0)?,name:r.get(1)?,created_at:r.get(2)?,is_quick:r.get(3)?,quick_order:r.get(4)?,sort_order:r.get(5)?})).map_err(sql)?.collect::<Result<Vec<_>,_>>().map_err(sql)?;
     Ok(rows)
 }
 fn catalog(

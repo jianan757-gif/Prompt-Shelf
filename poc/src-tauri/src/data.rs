@@ -11,6 +11,10 @@ pub struct Case {
     pub title: String,
     pub prompt: String,
     pub project: String,
+    #[serde(default,rename="projectId")]
+    pub project_id: Option<String>,
+    #[serde(default,rename="tagIds")]
+    pub tag_ids: Vec<String>,
     pub tags: Vec<String>,
     #[serde(rename = "favorite", alias = "fav")]
     pub favorite: bool,
@@ -47,10 +51,13 @@ pub struct Library {
     pub tags: Vec<CatalogItem>,
     #[serde(rename="trashCount")]
     pub trash_count: u64,
+    #[serde(rename="uiPreferences")]
+    pub ui_preferences: serde_json::Value,
+    pub dictionary: Vec<Vec<String>>,
 }
 #[derive(Clone,Serialize)]
 #[serde(rename_all="camelCase")]
-pub struct CatalogItem {pub id:String,pub name:String,pub created_at:i64,pub is_quick:bool,pub quick_order:i64}
+pub struct CatalogItem {pub id:String,pub name:String,pub created_at:i64,pub is_quick:bool,pub quick_order:i64,pub sort_order:i64}
 #[derive(Deserialize)]
 struct Manifest {
     schema_version: u32,
@@ -76,7 +83,7 @@ impl Library {
         let mut library = Self {
             cases: manifest.cases,
             assets: manifest.assets,
-            projects:vec![],tags:vec![],trash_count:0,
+            projects:vec![],tags:vec![],trash_count:0,ui_preferences:crate::catalog::default_preferences(),dictionary:crate::catalog::default_dictionary(),
         };
         let mut ids = HashSet::new();
         for asset in &mut library.assets {
@@ -138,7 +145,7 @@ impl Library {
         Ok(())
     }
     pub fn demo() -> Self {
-        Self{assets:vec![],projects:vec![],tags:vec![],trash_count:0,cases:vec![Case{id:"demo-text".into(),title:"通用产品高清精修 · PoC".into(),prompt:"【非敏感 PoC 测试】严格保留产品构图、比例与标签，优化真实阴影及材质细节。\n这一行用于验证完整多行文字粘贴。".into(),project:"技术验证".into(),tags:vec!["产品精修".into()],favorite:true,used:1,result:None,refs:vec![],source_url:String::new(),created_at:None,updated_at:None,last_used_at:None,edit_revision:0}]}
+        Self{assets:vec![],projects:vec![],tags:vec![],trash_count:0,ui_preferences:crate::catalog::default_preferences(),dictionary:crate::catalog::default_dictionary(),cases:vec![Case{id:"demo-text".into(),title:"通用产品高清精修 · PoC".into(),prompt:"【非敏感 PoC 测试】严格保留产品构图、比例与标签，优化真实阴影及材质细节。\n这一行用于验证完整多行文字粘贴。".into(),project:"技术验证".into(),project_id:None,tag_ids:vec![],tags:vec!["产品精修".into()],favorite:true,used:1,result:None,refs:vec![],source_url:String::new(),created_at:None,updated_at:None,last_used_at:None,edit_revision:0}]}
     }
 }
 fn contained(root: &Path, value: &str) -> Result<PathBuf, String> {

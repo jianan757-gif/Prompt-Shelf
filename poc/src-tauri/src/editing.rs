@@ -185,6 +185,8 @@ pub async fn import_case_images(
             projects: vec![],
             tags: vec![],
             trash_count: 0,
+        ui_preferences: prompt_shelf_poc::catalog::default_preferences(),
+        dictionary: vec![],
         },
     )?;
     Ok(images)

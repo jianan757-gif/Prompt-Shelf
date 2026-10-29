@@ -1,4 +1,4 @@
-# Prompt Shelf · 4.4 B2 R2 编辑安全与图片交互
+# Prompt Shelf · 4.4 C 分类、检索与调用
 
 沿用 Tauri 2 + Rust + React/TypeScript、阶段 A 底座和已验收 B1 UI。B2 增加 SQLite 自动草稿、异常恢复与未保存处理，承接 B1 的案例内联编辑、图片操作和双窗刷新。停止在 B2，不扩展 C–F。
 
@@ -11,13 +11,13 @@ cd poc
 pnpm install --frozen-lockfile
 pnpm test
 pnpm build
-$env:CARGO_TARGET_DIR = Join-Path $PWD 'src-tauri/target-stage-b2-r2'
+$env:CARGO_TARGET_DIR = Join-Path $PWD 'src-tauri/target-stage-c'
 cargo test --manifest-path src-tauri/Cargo.toml --locked
 pnpm tauri build --no-bundle -- --locked
 cargo build --manifest-path src-tauri/Cargo.toml --release --bin prompt-shelf-store --locked
 ```
 
-两个 exe 位于 target-stage-b2-r2/release/：prompt-shelf-poc.exe（主程序，文件名保留）、prompt-shelf-store.exe（离线工具）。旧阶段 A、round7 等目录不覆盖。reports/b2-r2/ 留本机测试、构建与哈希；编译/Mock 验证不代替真实目标接收和 Windows UI 手测。
+本阶段两个 exe 位于 target-stage-c/release/：prompt-shelf-poc.exe（主程序，文件名保留）、prompt-shelf-store.exe（离线工具）。旧阶段 A、round7 等目录不覆盖。reports/b2-r2/ 留本机测试、构建与哈希；编译/Mock 验证不代替真实目标接收和 Windows UI 手测。
 
 ## 数据目录与启动
 
@@ -136,3 +136,25 @@ node scripts/check-ui-build.mjs b2-r2
 ```
 
 Vite 测试服务器只监听本机并排除 Rust target/报告目录的扫描；资产请求限定在自建临时目录。所有浏览器运行按时间留独立 JSON，失败记录与成功记录分开。
+
+## C 分类、检索与调用
+
+revision `4.4-c`，schema 保持 2，无新增依赖。项目/标签新增、重命名、单项/批量删除以稳定 ID 操作；删分类解除正式案例/草稿关系，保留案例与图片。重命名同时绑定旧名/新名 pending 输入，标签按同一 ID 去重并保留最早位置；删除也清理等价 pending 输入。分类写入先处理当前案例编辑，再由后端持会话锁检查空闲，防止迟到字符串草稿复活旧分类。
+
+快捷标签开关及顺序存 SQLite，主库左侧、顶部及快捷面板同源；左侧握柄可指针拖动或 Alt+上下键。收藏即时小事务，可在另一窗编辑期间更新，正式内容保存不会覆盖收藏。最近使用只在同一次队列请求首次成功派发一项后记一次；零派发不记，部分派发后取消仍记。记录失败可见且不重放已发出的粘贴。该计数仍表示派发过，不代表目标收件成功。
+
+词典可编辑并持久化，去空/组内去重、拒绝跨组冲突；保存失败保留输入。布局、排序、二级栏列数/显示、栏宽及快捷间隔保存到白名单偏好。分类筛选用 ID，名称更新不丢选择；删除所选分类才解除筛选。两窗通过 library-changed 更新。快捷面板自动刷新保留当前会话顺序、选中 ID 和位置，切集合或再次点击当前集合应用新排序；跨集合保留目标集合已存的选中与滚动。指针选卡不强制滚动，键盘选择仍跟随。
+
+get_library_index 只读轻量元数据与检索字段，不生成缩略图；主库初始渲染 60 条，滚动增量加载，快捷面板前 50 条。get_case_assets 按实际案例 ID 批取，每次最多 120 个；动态授权仍只覆盖对应缩略图。旧 get_library/CLI 检查继续可用。
+
+报告 `reports/stage-c/`。必要验证包括真实 SQLite、生产队列配 MockPlatform、自建临时库的实际 React 两窗（测试 IPC transport），用户已于 2026-10-29 反馈测试全部通过，按整体用户验收记录，未附逐应用原始日志；自动化不冒充 Windows 实机测试。不做 D–F。最终 release 由主控通过 Tauri CLI 在 target-stage-c 构建，不能以普通 cargo GUI release 代替。
+
+浏览器测试沿用现成 Playwright/Edge，不新增正式依赖：
+
+```powershell
+$env:CARGO_TARGET_DIR = Join-Path $PWD 'src-tauri/target-stage-c'
+cargo test --manifest-path src-tauri/Cargo.toml --locked --test browser_store --no-run --message-format=json *> reports/stage-c/browser-bridge-build.jsonl
+# 可用 PLAYWRIGHT_MODULE 指定现有包位置
+pnpm test:catalog
+node scripts/check-ui-build.mjs stage-c
+```

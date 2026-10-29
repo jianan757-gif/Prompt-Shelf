@@ -3,6 +3,9 @@ mod escape;
 mod platform;
 mod queue;
 mod editing;
+mod catalog_commands;
+#[cfg(test)]mod usage_queue_tests;
+use catalog_commands::{catalog_create,catalog_rename,catalog_delete,set_quick_tag,reorder_quick_tags,set_favorite,set_ui_preferences,save_dictionary,get_library_index,get_case_assets};
 use editing::{begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url,save_case_draft,list_case_drafts,recover_case_draft,discard_case_draft};
 use prompt_shelf_poc::{data,paths::DataPaths,store::Store,scope::authorize_thumbnails};
 use platform::{NativePlatform, PasteItem, PastePlatform};
@@ -23,7 +26,7 @@ use tauri::{
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 type Target = <NativePlatform as PastePlatform>::Target;
-const BUILD_REVISION: &str = "4.4-b2-r2";
+const BUILD_REVISION: &str = "4.4-c";
 struct Runtime {
     platform: Arc<NativePlatform>,
     queue: Arc<queue::Queue>,
@@ -51,6 +54,7 @@ impl Runtime {
         }
     }
 }
+fn publish_change(app:&tauri::AppHandle,reason:&str,entity_ids:Vec<String>){let state=app.state::<Runtime>();let revision=state.library_revision.fetch_add(1,Ordering::AcqRel)+1;let _=app.emit("library-changed",serde_json::json!({"generation":1,"revision":revision,"entityIds":entity_ids,"reason":reason}));}
 fn can_preserve_previous(from_hotkey: bool, error: &str) -> bool {
     from_hotkey && error == "quick_panel_keep_previous_target"
 }
@@ -177,7 +181,7 @@ fn get_boot(window: tauri::WebviewWindow, state: tauri::State<Runtime>) -> serde
         None
     };
     let session = state.escape.lock().unwrap();
-    serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-b2-r2","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"libraryRevision":state.library_revision.load(Ordering::Acquire),"generation":1,"escapeRegistered":session.registered,"escapeError":session.error})
+    serde_json::json!({"platform":std::env::consts::OS,"logPath":state.log_path,"stage":"4.4-c","build":env!("CARGO_PKG_VERSION"),"revision":BUILD_REVISION,"pendingWake":pending,"panelVisible":window.is_visible().unwrap_or(false),"targetBound":state.target.lock().unwrap().is_some(),"libraryRevision":state.library_revision.load(Ordering::Acquire),"generation":1,"escapeRegistered":session.registered,"escapeError":session.error})
 }
 #[tauri::command]
 async fn search_ready(
@@ -375,6 +379,7 @@ async fn paste(
     let queue = state.queue.clone();
     state.log("request_reserved",serde_json::json!({"requestId":id,"caseId":case_id,"kind":kind,"total":items.len(),"intervalMs":interval_ms,"target":state.platform.target_diagnostic(&target)}));
     tauri::async_runtime::spawn(async move {
+        let usage=prompt_shelf_poc::usage::FirstDispatch::default();
         queue::run(
             platform,
             target,
@@ -383,6 +388,9 @@ async fn paste(
             items,
             Duration::from_millis(interval_ms),
             |event| {
+                if let Some(result)=usage.observe(event.done,||app.state::<Runtime>().store.record_use(&event.case_id)){
+                    match result{Ok(())=>publish_change(&app,"case-used",vec![event.case_id.clone()]),Err(error)=>{app.state::<Runtime>().log("recent_write_failed",serde_json::json!({"requestId":event.request_id,"caseId":event.case_id,"error":error}));let _=app.emit("library-write-failed",serde_json::json!({"kind":"recent","error":format!("已触发粘贴，但最近使用记录未保存：{error}；不会重复派发") }));}}
+                }
                 app.state::<Runtime>()
                     .log("queue", serde_json::to_value(&event).unwrap());
                 if ["failed", "cancelled", "completed"].contains(&event.phase.as_str()) {
@@ -442,7 +450,7 @@ fn main() {
             for (code,tab) in [(Code::Digit1,"all"),(Code::Digit2,"recent"),(Code::Digit3,"fav")]{if shortcut.matches(Modifiers::CONTROL|Modifiers::ALT,code){wake(app,tab,true);return;}}
         }).build())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![get_library,get_boot,ready,search_ready,hide_panel,panel_escape,cancel_queue,panel_interaction,open_library,close_library,window_action,paste,begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url,save_case_draft,list_case_drafts,recover_case_draft,discard_case_draft,pending_library_close,cancel_library_close,finish_library_close])
+        .invoke_handler(tauri::generate_handler![get_library,get_boot,ready,search_ready,hide_panel,panel_escape,cancel_queue,panel_interaction,open_library,close_library,window_action,paste,begin_case_edit,cancel_case_edit,commit_case,import_case_images,normalize_source_url,open_source_url,save_case_draft,list_case_drafts,recover_case_draft,discard_case_draft,pending_library_close,cancel_library_close,finish_library_close,catalog_create,catalog_rename,catalog_delete,set_quick_tag,reorder_quick_tags,set_favorite,set_ui_preferences,save_dictionary,get_library_index,get_case_assets])
         .setup(|app|{
             let mut arguments=std::env::args_os().skip(1);let mut override_directory=None;
             while let Some(argument)=arguments.next(){
@@ -454,9 +462,9 @@ fn main() {
             let store=Arc::new(store);let directory=store.paths().logs();
             let log_path=directory.join("poc.jsonl");let log=std::fs::OpenOptions::new().create(true).append(true).open(&log_path)?;
             let reader=store.clone();
-            let library=tauri::async_runtime::block_on(tauri::async_runtime::spawn_blocking(move||reader.library())).map_err(std::io::Error::other)?.map_err(std::io::Error::other)?;
+            let library=tauri::async_runtime::block_on(tauri::async_runtime::spawn_blocking(move||reader.library_index())).map_err(std::io::Error::other)?.map_err(std::io::Error::other)?;
             authorize_thumbnails(app.handle(),&store,&library).map_err(std::io::Error::other)?;
-            let (case_count,asset_count)=(library.cases.len(),library.assets.len());
+            let (case_count,asset_count)=store.counts().map_err(std::io::Error::other)?;
             let platform=Arc::new(NativePlatform::default());
             #[cfg(target_os="windows")]
             if let Some(window)=app.get_webview_window("quick_panel"){platform.attach_window(&window)?;}
