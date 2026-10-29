@@ -1,0 +1,9 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.45s
+     Running unittests src\main.rs (poc/src-tauri/target-stage-e\debug\deps\prompt_shelf_poc-7651336ffcbce964.exe)
+
+running 3 tests
+test backup_commands::tests::dropped_waiter_and_cancel_do_not_release_job_or_maintenance_before_worker_ends ... ok
+test backup_commands::tests::maintenance_waits_for_reserved_queue_and_allows_only_ongoing_writes ... ok
+test backup_commands::tests::committed_restore_keeps_success_and_replays_cleanup_warning_with_log ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 37 filtered out; finished in 0.28s

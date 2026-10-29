@@ -1,6 +1,23 @@
 # E ZIP 备份与恢复交付记录
 
-2026-10-29。状态：E 实现、自动化验证、代理独立复测及生产构建完成，用户确认验收第 1–5 项通过，第 6 项采用已有自动化补证；外部结项审核待完成。D 已通过用户及独立审核，以 `5b92cd4` 保留历史合并 main；回退标签 `baseline-stage-d` 指向 `6e2d3e7`。E 分支为 `codex/4.4-e-backup`，未经审核不合并 main，不发布版本，不进入 F。
+2026-10-29。状态：E 原交付已通过用户验收及外部独立审核；本次仅修正审核提出的恢复后权限清理提示问题，修复待复核。D 已通过用户及独立审核，以 `5b92cd4` 保留历史合并 main；回退标签 `baseline-stage-d` 指向 `6e2d3e7`。E 分支为 `codex/4.4-e-backup`，暂不合并 main，不发布版本，不进入 F。后续推送须在用户自测并确认后进行。
+
+## 审核后修正：恢复成功与权限清理警告分离
+
+基于 `38691f7` 修复：新库已安装并初始化成功后，旧缩略图授权清理失败不再抛出恢复失败。恢复返回成功、新库继续使用；记录 `restore_scope_cleanup_warning` 日志，保留代际和原始错误。真正的恢复/初始化失败仍走原失败及回退路径。
+
+主库与快捷面板复用现有提示区域显示“资料库已恢复成功；旧缩略图访问权限清理未完成，详情已记录日志。”警告随当前代际保存在运行状态中，两窗重挂载或重读状态不会丢失；后续正常恢复清除旧警告。日志持久保留，不增加数据库字段、依赖或自动重试机制。
+
+故障注入仅用于独立临时资料库和测试桥，不是实机制造权限异常。修复的定向及回归证据见 [cleanup-warning](../validation/stage-e/cleanup-warning/)。本次未替换正在运行的 E 程序、未重新构建 release；下文生产产物及 108 文件源码清单均属于修复前已验收基线，不代表本次修复的可执行文件。实机复核需正常退出后重新构建。
+
+| 本次验证 | 结果及证据（上述目录） |
+|---|---|
+| 恢复命令与取消/维护回归 | 3 项通过，包含新增故障测试的失败/正常两分支；新库保持活动，返回成功，日志及可重读警告一致。`backup-commands-regression.txt` |
+| 缩略图权限回归 | 2 项通过，Tauri MockRuntime 验证新库授权保留及仅授权缩略图。`scope-refresh-regression.txt` |
+| 实际 React + 生产 Store/Host、测试 IPC | 4 项通过：成功返回及新库数据、两窗重挂载提示、重新加载提示保留、正常恢复清除旧警告。`browser-targeted-final.txt`、`restore-cleanup-warning.png` |
+| 前端逻辑、构建与样式隔离 | 30 项通过；TypeScript/Vite、CSS 检查通过。`frontend-tests.txt`、`frontend-build.txt`、`packaged-css-check.txt` |
+
+复现：在 `poc/` 执行 `cargo test --manifest-path src-tauri/Cargo.toml --bin prompt-shelf-poc backup_commands --locked --target-dir src-tauri/target-stage-e`、同参数 `--test scope_refresh`（替代 `--bin … backup_commands`）、`pnpm test`、`pnpm build`、`node scripts/check-ui-build.mjs stage-e-scope-warning`。React 故障测试入口为 `tests/browser/restore-scope-warning.cjs`，先将 `cargo test --manifest-path src-tauri/Cargo.toml --test browser_store --no-run --message-format=json --locked --target-dir src-tauri/target-stage-e` 的标准输出保存到 `reports/stage-e-scope-warning/browser-bridge-build.jsonl`；使用现有 Playwright（可由 `PLAYWRIGHT_MODULE` 指定）及 Edge 运行。所有测试使用独立临时库。
 
 ## 范围与数据边界
 

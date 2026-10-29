@@ -2,7 +2,7 @@
 
 Windows 优先的图文提示词管理与快捷调用桌面工具，采用 **Tauri 2 + Rust + React/TypeScript**。
 
-**main 已合并通过用户及独立审核的 D（5b92cd4），回退标签 `baseline-stage-d` 指向 6e2d3e7，schema 保持 2。** E ZIP 备份与恢复已在 `codex/4.4-e-backup` 完成实现、自动化与独立复测，用户验收第 1–5 项通过，第 6 项采用已有自动化补证，外部结项审核待完成，不代表发布软件。v0.1.0 历史发布不变；macOS 仅预留适配接口。
+**main 已合并通过用户及独立审核的 D（5b92cd4），回退标签 `baseline-stage-d` 指向 6e2d3e7，schema 保持 2。** E ZIP 备份与恢复位于 `codex/4.4-e-backup`，原交付已通过用户及外部独立审核；恢复后权限清理警告的局部修正待复核，暂不合并 main。当前本机 release 尚未包含该修正，详见交付记录。v0.1.0 历史发布不变；macOS 仅预留适配接口。
 
 ## 审查入口
 

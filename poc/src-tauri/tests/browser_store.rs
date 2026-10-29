@@ -1,6 +1,6 @@
 //! Headless-browser IPC bridge for integration tests. Never opens a default/user library.
 use prompt_shelf_poc::{
-    backup::{self, JobControl, PreparedRestore, Summary},
+    backup::{self, JobControl, PreparedRestore, RestoreOutcome, Summary},
     cases::{CaseDocument, EditSessions, ImageReference},
     storage_host::{HostContext, LibraryHost},
     store::Store,
@@ -256,6 +256,7 @@ struct Pending {
 struct Jobs {
     running: Mutex<Option<Arc<JobControl>>>,
     pending: Mutex<Option<Pending>>,
+    restore_notice: Mutex<Option<RestoreOutcome>>,
 }
 struct Lease {
     jobs: Arc<Jobs>,
@@ -290,6 +291,7 @@ struct Bridge {
     root: PathBuf,
     restore_path: Mutex<PathBuf>,
     pause_phase: Mutex<Option<String>>,
+    fail_scope_cleanup: std::sync::atomic::AtomicBool,
     output: Mutex<std::io::Stdout>,
 }
 impl Bridge {
@@ -349,7 +351,22 @@ impl Bridge {
     fn call(&self, request: &Value) -> Result<Value, String> {
         let command = request["command"].as_str().unwrap_or("");
         if command == "get_library_context" {
-            return serde_json::to_value(self.host.context()?).map_err(|e| e.to_string());
+            let context = self.host.context()?;
+            let notice = self.jobs.restore_notice.lock().unwrap();
+            return Ok(json!(RestoreOutcome {
+                context,
+                restore_warning: notice
+                    .as_ref()
+                    .filter(|n| n.context.generation == context.generation)
+                    .and_then(|n| n.restore_warning.clone())
+            }));
+        }
+        if command == "test_fail_scope_cleanup" {
+            self.fail_scope_cleanup.store(
+                request["args"]["enabled"].as_bool().unwrap(),
+                std::sync::atomic::Ordering::Release,
+            );
+            return Ok(Value::Null);
         }
         if command == "backup_cancel" {
             let current = self.jobs.running.lock().map_err(|e| e.to_string())?;
@@ -535,8 +552,24 @@ impl Bridge {
                         "restore_initialization_failed_rolled_back: {error}"
                     ));
                 }
+                // Expose the new generation first, modelling a focus read before cleanup
+                // completes. The later warning must reach an already-remounted window.
                 self.event("library-reinitialized", context);
-                Ok(json!(context))
+                let cleanup = if self
+                    .fail_scope_cleanup
+                    .load(std::sync::atomic::Ordering::Acquire)
+                {
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+                    Err("injected_scope_cleanup_failure".to_owned())
+                } else {
+                    Ok(())
+                };
+                let outcome = backup::restore_outcome(context, cleanup, |kind, data| {
+                    self.event("test-log", json!({"kind":kind,"data":data}))
+                });
+                *self.jobs.restore_notice.lock().unwrap() = Some(outcome.clone());
+                self.event("library-reinitialized", &outcome);
+                Ok(json!(outcome))
             }
             _ => Err("unsupported_backup_test_command".into()),
         }
@@ -567,6 +600,7 @@ fn browser_store_bridge() {
         jobs: Arc::new(Jobs::default()),
         restore_path: Mutex::new(root.join("browser-backup.zip")),
         pause_phase: Mutex::new(None),
+        fail_scope_cleanup: std::sync::atomic::AtomicBool::new(false),
         root,
         output: Mutex::new(std::io::stdout()),
     });

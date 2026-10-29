@@ -1,6 +1,6 @@
 use crate::Runtime;
 use prompt_shelf_poc::{
-    backup::{self, JobControl, Manifest, PreparedRestore, Summary},
+    backup::{self, JobControl, Manifest, PreparedRestore, RestoreOutcome, Summary},
     storage_host::HostContext,
 };
 use serde::Serialize;
@@ -31,12 +31,26 @@ struct Pending {
 pub struct BackupJobs {
     running: Mutex<Option<Arc<JobControl>>>,
     pending: Mutex<Option<Pending>>,
+    restore_notice: Mutex<Option<RestoreOutcome>>,
 }
 struct Job {
     jobs: Arc<BackupJobs>,
     control: Arc<JobControl>,
 }
 impl BackupJobs {
+    fn record_restore(&self, outcome: &RestoreOutcome) {
+        *self.restore_notice.lock().unwrap() = Some(outcome.clone());
+    }
+    fn context(&self, context: HostContext) -> RestoreOutcome {
+        let notice = self.restore_notice.lock().unwrap();
+        RestoreOutcome {
+            context,
+            restore_warning: notice
+                .as_ref()
+                .filter(|notice| notice.context.generation == context.generation)
+                .and_then(|notice| notice.restore_warning.clone()),
+        }
+    }
     pub fn window_closed(&self) {
         if let Ok(running) = self.running.lock() {
             if let Some(job) = running.as_ref() {
@@ -84,8 +98,8 @@ fn wait_queue(queue: &crate::queue::Queue, control: &JobControl) -> Result<(), S
 }
 
 #[tauri::command]
-pub fn get_library_context(state: tauri::State<'_, Runtime>) -> Result<HostContext, String> {
-    state.host.context()
+pub fn get_library_context(state: tauri::State<'_, Runtime>) -> Result<RestoreOutcome, String> {
+    Ok(state.backups.context(state.host.context()?))
 }
 #[tauri::command]
 pub async fn backup_summary(
@@ -250,7 +264,7 @@ pub async fn backup_restore(
     token: String,
     expected_revision: u64,
     operation_id: String,
-) -> Result<HostContext, String> {
+) -> Result<RestoreOutcome, String> {
     main_only(&window)?;
     let state = app.state::<Runtime>();
     let job = state.backups.start(operation_id)?;
@@ -313,12 +327,16 @@ pub async fn backup_restore(
                 "restore_initialization_failed_rolled_back: {error}"
             ));
         }
-        let revoke = grants.revoke_previous(&app, &path);
-        let _ = app.emit("library-reinitialized", context);
-        // The new library is committed. An unlikely scope API failure is reported without
-        // reopening a library whose old scope may already have been forbidden.
-        revoke?;
-        Ok(context)
+        let outcome = backup::restore_outcome(
+            context,
+            grants.revoke_previous(&app, &path),
+            |kind, data| {
+                app.state::<Runtime>().log(kind, data);
+            },
+        );
+        jobs.record_restore(&outcome);
+        let _ = app.emit("library-reinitialized", &outcome);
+        Ok(outcome)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -367,6 +385,61 @@ pub async fn backup_release_preview(
 mod tests {
     use super::*;
     use prompt_shelf_poc::storage_host::LibraryHost;
+    #[test]
+    fn committed_restore_keeps_success_and_replays_cleanup_warning_with_log() {
+        use prompt_shelf_poc::{paths::DataPaths, store::Store};
+        use std::io::Write;
+        for failed_cleanup in [true, false] {
+            let root = tempfile::tempdir().unwrap();
+            let host = LibraryHost::open(root.path()).unwrap();
+            let path = host
+                .storage_parent()
+                .unwrap()
+                .join(uuid::Uuid::new_v4().to_string());
+            let incoming = Store::open(DataPaths::new(&path).unwrap()).unwrap();
+            let mut document = incoming.edit_document(None).unwrap();
+            document.title = "restored library".into();
+            document.prompt = "restored content".into();
+            incoming.commit_case(&document).unwrap();
+            drop(incoming);
+            let mut maintenance = host.begin_maintenance(1).unwrap();
+            let context = maintenance.install(&path, host.revision()).unwrap();
+            host.read(context.generation, |s| s.library_index())
+                .unwrap();
+            let log_path = root.path().join("test-log.jsonl");
+            let mut log = std::fs::File::create(&log_path).unwrap();
+            let cleanup = if failed_cleanup {
+                Err("injected_scope_cleanup_failure".to_owned())
+            } else {
+                Ok(())
+            };
+            let outcome = backup::restore_outcome(context, cleanup, |kind, data| {
+                writeln!(log, "{}", serde_json::json!({"kind":kind,"data":data})).unwrap()
+            });
+            let jobs = BackupJobs::default();
+            jobs.record_restore(&outcome);
+            drop(maintenance);
+            drop(log);
+            assert_eq!(outcome.context.generation, 2);
+            assert_eq!(
+                host.read(2, |s| Ok(s.library_index()?.cases[0].title.clone()))
+                    .unwrap(),
+                "restored library"
+            );
+            let replay = jobs.context(host.context().unwrap());
+            assert_eq!(replay.restore_warning.is_some(), failed_cleanup);
+            let logs = std::fs::read_to_string(log_path).unwrap();
+            if failed_cleanup {
+                let record: serde_json::Value = serde_json::from_str(logs.trim()).unwrap();
+                assert_eq!(record["kind"], "restore_scope_cleanup_warning");
+                assert_eq!(record["data"]["generation"], 2);
+                assert_eq!(record["data"]["error"], "injected_scope_cleanup_failure");
+                assert!(outcome.restore_warning.unwrap().contains("已恢复成功"));
+            } else {
+                assert!(logs.is_empty());
+            }
+        }
+    }
     #[tokio::test]
     async fn dropped_waiter_and_cancel_do_not_release_job_or_maintenance_before_worker_ends() {
         let directory = tempfile::tempdir().unwrap();

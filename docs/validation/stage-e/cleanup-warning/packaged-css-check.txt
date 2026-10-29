@@ -1,0 +1,20 @@
+{
+  "result": "PASS",
+  "method": "Static inspection of actual Vite production entry preloader dependency arrays; no browser or GUI",
+  "entry": "assets/index-BeeOcavg.js",
+  "libraryCss": [
+    "assets/library-CRhZcelA.css",
+    "assets/refresh-BZur_zbN.css",
+    "assets/LibraryManager-BrO8xB-F.css"
+  ],
+  "quickCss": [
+    "assets/quick-DCn-nee8.css",
+    "assets/poc-fYstFkQt.css",
+    "assets/refresh-BZur_zbN.css"
+  ],
+  "windowCssIsolated": true,
+  "libraryHasItsOwnDynamicComponent": true,
+  "quickHasItsOwnDynamicComponent": true,
+  "prototypeStylePreserved": true,
+  "visualAcceptance": "NOT_RUN"
+}

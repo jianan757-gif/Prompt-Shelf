@@ -58,6 +58,35 @@ pub struct Progress {
     pub files_done: u64,
     pub files_total: u64,
 }
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RestoreOutcome {
+    #[serde(flatten)]
+    pub context: crate::storage_host::HostContext,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub restore_warning: Option<String>,
+}
+
+/// Called only after the new library has been installed and initialized successfully.
+pub fn restore_outcome(
+    context: crate::storage_host::HostContext,
+    cleanup: Result<(), String>,
+    mut log: impl FnMut(&str, serde_json::Value),
+) -> RestoreOutcome {
+    let restore_warning = cleanup.err().map(|error| {
+        log(
+            "restore_scope_cleanup_warning",
+            serde_json::json!({"generation":context.generation,"error":error}),
+        );
+        "资料库已恢复成功；旧缩略图访问权限清理未完成，详情已记录日志。".to_owned()
+    });
+    RestoreOutcome {
+        context,
+        restore_warning,
+    }
+}
+
 pub struct JobControl {
     operation_id: String,
     // 0 = running, 1 = cancelled, 2 = commit has started.

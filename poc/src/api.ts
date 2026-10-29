@@ -1,8 +1,8 @@
-import {useMemo} from 'react';
+import {useEffect,useMemo,useState} from 'react';
 import {invoke as nativeInvoke,isTauri} from '@tauri-apps/api/core';
 import {listen} from '@tauri-apps/api/event';
 
-export interface LibraryContext {generation:number;revision:number;maintenance:boolean}
+export interface LibraryContext {generation:number;revision:number;maintenance:boolean;restoreWarning?:string}
 type Invoke=<T=unknown>(command:string,args?:Record<string,unknown>)=>Promise<T>;
 let context:LibraryContext|undefined;
 let setup:Promise<void>|undefined;
@@ -12,8 +12,9 @@ const changed=new Set<(context:LibraryContext)=>void>();
 function accept(next:LibraryContext){
   if(context&&next.generation<context.generation)return;
   const different=context?.generation!==next.generation;
+  const noticeChanged=context?.restoreWarning!==next.restoreWarning;
   context=next;
-  if(different)changed.forEach(callback=>callback(next));
+  if(different||noticeChanged)changed.forEach(callback=>callback(next));
 }
 async function connect(){
   if(!setup)setup=(async()=>{
@@ -34,6 +35,11 @@ export async function initializeLibrary(){
 }
 export function subscribeLibraryGeneration(callback:(context:LibraryContext)=>void){changed.add(callback);return()=>{changed.delete(callback)}}
 export function isCurrentLibraryGeneration(generation:number){return generation===context?.generation}
+export function useRestoreWarning(){
+  const [warning,setWarning]=useState(context?.restoreWarning);
+  useEffect(()=>{const stop=subscribeLibraryGeneration(next=>setWarning(next.restoreWarning));setWarning(context?.restoreWarning);return stop},[]);
+  return warning;
+}
 
 /** Bind once per mounted component: a queued continuation must keep its original library. */
 function libraryClient():Invoke{

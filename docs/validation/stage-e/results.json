@@ -1,6 +1,6 @@
 {
   "revision": "4.4-e",
-  "state": "user-acceptance-recorded-pending-external-review",
+  "state": "external-review-approved-baseline-cleanup-warning-fix-pending-review",
   "frozenAt": "2026-10-29T13:09:13.9421492+08:00",
   "sourceFiles": 108,
   "sourceManifestSha256": "52eeaed474f101c053a3de4af471248a324c9575ce55e31413bd2cf97ddaef8c",
@@ -59,6 +59,25 @@
       "browser-tests.txt"
     ],
     "testsRerun": false,
-    "externalReview": "PENDING"
+    "externalReview": "BASELINE_APPROVED; POST_REVIEW_FIX_PENDING"
+  },
+  "postReviewFix": {
+    "baseCommit": "38691f7",
+    "scope": "restore success survives old thumbnail permission cleanup failure",
+    "evidence": "cleanup-warning/",
+    "backupCommandsPass": 3,
+    "targetedTestIncludedInCommands": 1,
+    "thumbnailScopePass": 2,
+    "reactChecks": 4,
+    "frontendLogicPass": 30,
+    "frontendBuild": "PASS",
+    "packagedCss": "PASS",
+    "faultInjection": "temporary library; production result helper and test IPC; not actual native permission failure",
+    "nativeGui": "NOT_RUN",
+    "releaseRebuilt": false,
+    "schema": 2,
+    "dependenciesChanged": false,
+    "baselineEvidence": "original source manifest and release hashes describe pre-fix accepted baseline",
+    "push": "WAIT_FOR_USER_SELF_TEST_AND_CONFIRMATION"
   }
 }

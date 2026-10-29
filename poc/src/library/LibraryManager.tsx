@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import type {CSSProperties,PointerEvent} from 'react';
 import {isTauri} from '@tauri-apps/api/core';
-import {useLibraryInvoke} from '../api';
+import {useLibraryInvoke,useRestoreWarning} from '../api';
 import {listen} from '@tauri-apps/api/event';
 import {dictionary,score} from '../search';
 import {Icon} from './Icons';
@@ -35,7 +35,7 @@ function Splitter({name,width,change,commit}:{name:'rail'|'secondary';width:numb
 }
 /** Native library; persistent draft state is owned by the editor and Rust. */
 export function LibraryManager(){
-  const invoke=useLibraryInvoke();
+  const invoke=useLibraryInvoke();const restoreWarning=useRestoreWarning();
   const [data,setData]=useState<Library>({cases:[],assets:[]});const [loaded,setLoaded]=useState(false);const [loadError,setLoadError]=useState('');
   const [platform,setPlatform]=useState('');const [view,setView]=useState<Tab>('all');const [query,setQuery]=useState('');const [tag,setTag]=useState('');const [project,setProject]=useState('');
   const [expanded,setExpanded]=useState<CatalogKind|null>(null);const [layout,setLayout]=useState<Layout>('regular');const [sort,setSort]=useState<CaseSort>('recent');
@@ -147,7 +147,7 @@ export function LibraryManager(){
         <div className="head-controls v410-toolbar"><div className="view-toggle" role="group" aria-label="卡片布局">{(['regular','masonry'] as const).map(mode=><button type="button" key={mode} className={layout===mode?'active':''} aria-pressed={layout===mode} title={mode==='regular'?'常规网格：同排等高':'瀑布流：按列紧凑排列'} onClick={()=>updatePreference({libraryLayout:mode})}><Icon name={mode}/>{mode==='regular'?'常规':'瀑布流'}</button>)}</div>{!trashOpen&&<div className="sort-toggle" role="group" aria-label="全部案例排序">{([['recent','最近使用'],['name','按名称'],['new','最新创建']] as const).map(([value,label])=><button type="button" key={value} className={sort===value?'active':''} aria-pressed={sort===value} onClick={()=>updatePreference({librarySort:value})}>{label}</button>)}</div>}</div>
       </div><div className="searchrow"><label className="global-search"><Icon name="search" size={15}/><input ref={search} value={query} onChange={event=>{const value=event.target.value;guard(()=>setQuery(value))}} placeholder={trashOpen?'搜索已删除案例':'搜索案例标题、提示词正文、项目、标签…'} aria-label={trashOpen?'搜索已删除案例':'搜索案例'} autoComplete="off"/></label></div>
       {!trashOpen&&<div className="quick-filter-row"><div className="quickbar"><span className="qlabel">快捷标签</span><button type="button" className={`quicktag ${!tag?'active':''}`} onClick={()=>guard(()=>setTag(''))}>全部场景</button>{quickTags.map(item=><button type="button" key={item.id} className={`quicktag ${tag===item.id?'active':''}`} onClick={()=>chooseTag(item.id)}>{item.name}</button>)}</div><button type="button" className="btn sm toolbar-clear" title="清除搜索和筛选" onClick={()=>guard(()=>{setQuery('');setTag('');setProject('');setView('all')})}>清除筛选</button></div>}
-      <div className="statsrow"><b>{records.length} {trashOpen?'个已删除案例':'条案例'}</b><span>{trashOpen?'恢复后回到资料库；永久删除不可撤销':layout==='regular'?'常规网格 · 同排等高':'瀑布流 · 各列独立排列'}{!trashOpen&&tagName&&` · 标签：${tagName}`}{!trashOpen&&projectName&&` · 项目：${projectName}`}</span></div>{trashError&&!trashDecision&&<div className="trash-error-banner" role="alert"><span>{trashError}</span><button type="button" className="iconbutton" aria-label="关闭操作错误提示" onClick={()=>setTrashError('')}><Icon name="close" size={14}/></button></div>}</div>
+      <div className="statsrow"><b>{records.length} {trashOpen?'个已删除案例':'条案例'}</b><span>{trashOpen?'恢复后回到资料库；永久删除不可撤销':layout==='regular'?'常规网格 · 同排等高':'瀑布流 · 各列独立排列'}{!trashOpen&&tagName&&` · 标签：${tagName}`}{!trashOpen&&projectName&&` · 项目：${projectName}`}</span></div>{restoreWarning&&<div className="v50-warning" role="status">{restoreWarning}</div>}{trashError&&!trashDecision&&<div className="trash-error-banner" role="alert"><span>{trashError}</span><button type="button" className="iconbutton" aria-label="关闭操作错误提示" onClick={()=>setTrashError('')}><Icon name="close" size={14}/></button></div>}</div>
       <div className="scrollarea" ref={scrollArea}><div className={`gallery ${layout}`} data-columns={columns}>
         {cards.length?layout==='masonry'?Array.from({length:columns},(_,column)=><div className="masonry-column" key={column}>{cards.filter((_,index)=>index%columns===column)}</div>):cards:<div className="empty-results">{loadError?<><strong>资料库暂时无法读取</strong><br/>{loadError}</>:!loaded?'正在加载资料库…':trashOpen?trashCases.length?'没有符合搜索条件的已删除案例':'回收站为空':data.cases.length?<>没有符合筛选条件的案例<br/>请调整搜索词、标签或项目。</>:'资料库暂无案例'}</div>}
       </div>{renderLimit<records.length&&<div ref={loadMore} className="library-load-more" role="status">正在加载更多案例…</div>}</div></section>
