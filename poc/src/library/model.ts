@@ -1,25 +1,18 @@
-import {score} from '../search.ts';
+import {dictionary,filterCases} from '../search.ts';
 import type {Case,CatalogItem,Library,Tab} from '../types.ts';
 
 export type CaseSort='recent'|'name'|'new';
 export type Layout='regular'|'masonry';
 export const columnCount=(width:number)=>width>=1390?3:width>=845?2:1;
-export function libraryCases(data:Case[],query:string,view:Tab,tag:string,project:string,sort:CaseSort):Case[]{
-  return data.filter(r=>(view!=='fav'||r.favorite)&&(view!=='recent'||r.used>0)&&(!tag||r.tags.includes(tag))&&(!project||r.project===project))
-    .map(record=>({record,rank:score(record,query)})).filter(item=>item.rank>=0)
-    .sort((a,b)=>{
-      if(sort==='name')return a.record.title.localeCompare(b.record.title,'zh-CN');
-      if(sort==='recent'&&query.trim()&&a.rank!==b.rank)return b.rank-a.rank;
-      const time=(r:Case)=>sort==='new'?(r.createdAt??0):(r.lastUsedAt??0);
-      return time(b.record)-time(a.record)||(b.record.createdAt??0)-(a.record.createdAt??0)||a.record.id.localeCompare(b.record.id);
-    }).map(item=>item.record);
+export function libraryCases(data:Case[],query:string,view:Tab,tag:string,project:string,sort:CaseSort,groups:readonly string[][]=dictionary):Case[]{
+  return filterCases(data,query,view,tag,project,sort,groups);
 }
 export function catalogs(data:Library,kind:'projects'|'tags'):CatalogItem[]{
   // Older DTOs can still be displayed; unknown dates remain unknown (zero), never inferred from UUID.
   return data[kind]??[...new Set(data.cases.flatMap(r=>kind==='tags'?r.tags:r.project?[r.project]:[]))]
     .map(name=>({id:name,name,createdAt:0,isQuick:false,quickOrder:0}));
 }
-export const catalogCount=(records:Case[],kind:'projects'|'tags',name:string)=>records.filter(r=>kind==='tags'?r.tags.includes(name):r.project===name).length;
+export const catalogCount=(records:Case[],kind:'projects'|'tags',id:string)=>records.filter(r=>kind==='tags'?(r.tagIds?r.tagIds.includes(id):r.tags.includes(id)):(r.projectId!==undefined?r.projectId===id:r.project===id)).length;
 export function safeSource(value?:string):string|null{
   if(!value?.trim())return null;
   try{const url=new URL(value);return ['http:','https:'].includes(url.protocol)?url.href:null}catch{return null}

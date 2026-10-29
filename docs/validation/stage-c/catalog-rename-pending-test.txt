@@ -1,0 +1,8 @@
+   Compiling prompt-shelf-poc v0.1.0 ([workspace]\poc\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.51s
+     Running unittests src\lib.rs (poc\src-tauri\target-stage-c\debug\deps\prompt_shelf_poc-baa7045bd5adb6f3.exe)
+
+running 1 test
+test catalog::tests::rename_to_pending_name_binds_once_and_preserves_earliest_draft_position ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 44 filtered out; finished in 0.06s

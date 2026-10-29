@@ -1,0 +1,17 @@
+/* C uses frozen catalog/dialog controls; only form adapters are added here. */
+.library-root .catalog-create-row{margin-top:10px}
+.library-root .catalog-btn.active{background:#eaf0ff;border-color:#c8d8f9;color:#245bff}
+.library-root .catalog-icon-btn.catalog-pin-btn.quick-enabled{color:#245bff}
+.library-root .catalog-icon-btn.catalog-pin-btn.quick-enabled .ps-pin-body{fill:currentColor}
+.library-root .catalog-menu{z-index:2400}
+.library-root .dictionary-panel{max-height:86dvh;overflow:auto}
+.library-root .dictionary-edit-rows{display:flex;flex-direction:column;gap:8px;margin:15px 0}
+.library-root .dictionary-edit-row{display:grid;grid-template-columns:minmax(85px,1fr) minmax(120px,2fr) 30px;gap:8px;align-items:center}
+.library-root .dictionary-edit-row input{width:100%;min-width:0;height:32px;padding:5px 8px;border:1px solid #dfe6f0;border-radius:6px;background:#fff;font-size:12px}
+.library-root .dictionary-edit-row input:focus{border-color:#a8bde8}
+.library-root .dictionary-edit-actions{display:flex;gap:8px;align-items:center;margin-top:18px}
+.library-root .dictionary-edit-actions>span{flex:1}
+.library-root .dictionary-error{color:#ba5360!important}
+.library-root .library-load-more{height:36px;display:flex;align-items:center;justify-content:center;color:#8c9bb1;font-size:11px}
+@media(max-width:480px){.library-root .dictionary-edit-row{grid-template-columns:minmax(70px,1fr) minmax(90px,1.5fr) 26px;gap:5px}.library-root .dictionary-edit-actions{flex-wrap:wrap}}
+.library-root .tag-grip{touch-action:none}

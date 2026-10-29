@@ -1,7 +1,7 @@
 import {createContext,useContext,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import {invoke,convertFileSrc,isTauri} from '@tauri-apps/api/core';
 import {listen} from '@tauri-apps/api/event';
-import {LatestRead,selectionAfterRefresh} from './refresh';
+import {LatestRead,selectionAfterRefresh,retainSessionOrder} from './refresh';
 import {dictionary,filterCases,highlightParts} from './search';
 import {ReferenceCarousel} from './ReferenceCarousel';
 import {progressRouting,rememberProgress,terminalPhase as terminal,wakeView} from './session';
@@ -9,11 +9,12 @@ import type {SavedView,SessionView} from './session';
 import type {Asset,Case,Library,Progress,Tab} from './types';
 
 const WindowVisible=createContext(false);
+const SearchDictionary=createContext<readonly string[][]>(dictionary);
 type Wake={tab:Tab;token:number;warning?:string|null;targetBound?:boolean};
 type Boot={platform:string;logPath:string;pendingWake?:Wake|null;panelVisible?:boolean;targetBound?:boolean;escapeRegistered?:boolean;escapeError?:string|null};
 const frame=()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
 const tabs:[Tab,string][]=[['all','全部案例'],['recent','最近使用'],['fav','我的收藏']];
-function Mark({text,query}:{text:string;query:string}) {return <>{highlightParts(text,query).map((p,i)=>p.hit?<mark key={i} className="highlight promptmark">{p.text}</mark>:<span key={i}>{p.text}</span>)}</>}
+function Mark({text,query}:{text:string;query:string}) {return <>{highlightParts(text,query,useContext(SearchDictionary)).map((p,i)=>p.hit?<mark key={i} className="highlight promptmark">{p.text}</mark>:<span key={i}>{p.text}</span>)}</>}
 
 // A button shell occupies the original geometry; only intersecting images mount.
 function Thumb({asset,label,result,onClick,disabled}:{asset?:Asset;label:string;result?:boolean;onClick?:()=>void;disabled?:boolean}) {
@@ -32,12 +33,13 @@ export function App({library}:{library:boolean}) {
   const [targetBound,setTargetBound]=useState(false);
   const [data,setData]=useState<Library>({cases:[],assets:[]});const [loaded,setLoaded]=useState(false);
   const [query,setQuery]=useState('');const [tab,setTab]=useState<Tab>('all');const [tag,setTag]=useState('');const [project,setProject]=useState('');
-  const [selected,setSelected]=useState(0);const [interval,setIntervalMs]=useState(700);const [progress,setProgress]=useState<Progress|null>(null);
+  const [selected,setSelected]=useState(0);const [interval,setIntervalMs]=useState(700);const [intervalText,setIntervalText]=useState('700');const [progress,setProgress]=useState<Progress|null>(null);
+  const [metadataError,setMetadataError]=useState('');const favoritePending=useRef(new Set<string>());const intervalEditing=useRef(false);const intervalSaving=useRef(false);
   const [busy,setBusy]=useState(false);const locked=useRef(false);const [message,setMessage]=useState('');const [dict,setDict]=useState(false);
   const activeRequest=useRef<number|null>(null);const pendingInteraction=useRef(false);const requestGeneration=useRef(0);
   const earlyProgress=useRef(new Map<number,Progress>());
   const libraryReads=useRef(new LatestRead());const refreshLibrary=useRef<()=>Promise<void>>(async()=>{});
-  const pendingSelection=useRef<{id:string|null;index:number}|null>(null);const skipSelectionScroll=useRef(false);
+  const pendingSelection=useRef<{id:string|null;index:number;context:string}|null>(null);const skipSelectionScroll=useRef(false);
   const liveWindowEvent=useRef(false);
   const globalEscape=useRef(false);const liveEscapeEvent=useRef(false);const [escapeError,setEscapeError]=useState<string|null>(null);
   const [queueCaseId,setQueueCaseId]=useState<string|null>(null);
@@ -49,15 +51,17 @@ export function App({library}:{library:boolean}) {
   const sessionView=useRef<SessionView>({tab,query,tag,project,selected,scrollTop:0});
   sessionView.current={tab,query,tag,project,selected,scrollTop:pendingScroll.current??list.current?.scrollTop??0};
   const searchSequence=useRef(0);const searchSamples=useRef<{sequence:number;started:number}[]>([]);const [searchInputSequence,setSearchInputSequence]=useState(0);
+  const sessionOrder=useRef<{key:string;ids:string[]}>({key:'',ids:[]});const [orderEpoch,setOrderEpoch]=useState(0);
   const assets=useMemo(()=>new Map(data.assets.map(a=>[a.id,a])),[data.assets]);
-  const matches=useMemo(()=>filterCases(data.cases,query,tab,tag,project,sort),[data,query,tab,tag,project,sort]);
+  const matches=useMemo(()=>{const fresh=filterCases(data.cases,query,tab,tag,project,sort,data.dictionary??dictionary);const key=JSON.stringify([query,tab,tag,project,sort,orderEpoch]);const ordered=!library&&sessionOrder.current.key===key?retainSessionOrder(fresh,sessionOrder.current.ids):fresh;sessionOrder.current={key,ids:ordered.map(record=>record.id)};return ordered},[data,query,tab,tag,project,sort,orderEpoch,library]);
   const items=useMemo(()=>library?matches:matches.slice(0,50),[library,matches]);
-  const latestItems=useRef<Case[]>([]);latestItems.current=items;
-  useLayoutEffect(()=>{const snapshot=pendingSelection.current;if(!snapshot)return;pendingSelection.current=null;const next=selectionAfterRefresh(items.map(record=>record.id),snapshot.id,snapshot.index);if(next!==sessionView.current.selected){skipSelectionScroll.current=true;setSelected(next)}},[items]);
-  const tags=useMemo(()=>[...new Set(data.cases.flatMap(c=>c.tags))],[data]);
+  const latestItems=useRef<Case[]>([]);latestItems.current=items;const latestItemContext=useRef('');latestItemContext.current=JSON.stringify([tab,query,tag,project]);
+  useLayoutEffect(()=>{const snapshot=pendingSelection.current;if(!snapshot)return;pendingSelection.current=null;if(snapshot.context!==JSON.stringify([tab,query,tag,project]))return;const next=selectionAfterRefresh(items.map(record=>record.id),snapshot.id,snapshot.index);if(next!==sessionView.current.selected){skipSelectionScroll.current=true;setSelected(next)}},[items]);
+  const tags=useMemo(()=>(data.tags??[]).filter(item=>item.isQuick).slice().sort((a,b)=>a.quickOrder-b.quickOrder||a.id.localeCompare(b.id)),[data.tags]);
   const projects=useMemo(()=>[...new Set(data.cases.map(c=>c.project).filter(Boolean))],[data]);
   const run=async(command:string,args?:Record<string,unknown>)=>{try{return await invoke(command,args)}catch(e){setMessage(String(e));return undefined}};
-  const changeTab=(next:Tab)=>{
+  const changeTab=(next:Tab,explicit=false)=>{
+    if(explicit&&next===sessionView.current.tab){pendingSelection.current={id:latestItems.current[sessionView.current.selected]?.id??null,index:sessionView.current.selected,context:JSON.stringify([tab,query,tag,project])};pendingScroll.current??=list.current?.scrollTop??0;setOrderEpoch(value=>value+1);void refreshLibrary.current().catch(error=>setMessage(String(error)))}else if(next!==sessionView.current.tab){pendingSelection.current=null}
     const current={...sessionView.current,scrollTop:pendingScroll.current??list.current?.scrollTop??0};
     const nextView=wakeView(current,next,savedViews.current);
     if(nextView===current)return;
@@ -99,9 +103,9 @@ export function App({library}:{library:boolean}) {
     let disposed=false;const unlisten:(()=>void)[]=[];
     if(!isTauri()){setMessage('浏览器预览 · 系统粘贴、资源与窗口功能需启动 Tauri PoC');return}
     const refresh=async()=>{
-      const token=libraryReads.current.begin();
-      try{const catalog=await invoke<Library>('get_library');if(disposed||!libraryReads.current.accepts(token))return;
-        const index=sessionView.current.selected;pendingSelection.current={id:latestItems.current[index]?.id??null,index};pendingScroll.current??=list.current?.scrollTop??0;setData(catalog);setLoaded(true);
+      const token=libraryReads.current.begin();const before=sessionView.current;const selection={id:latestItems.current[before.selected]?.id??null,index:before.selected,context:JSON.stringify([before.tab,before.query,before.tag,before.project])};
+      try{const catalog=await invoke<Library>('get_library_index');if(disposed||!libraryReads.current.accepts(token))return;
+        const context=JSON.stringify([sessionView.current.tab,sessionView.current.query,sessionView.current.tag,sessionView.current.project]);const index=sessionView.current.selected;pendingSelection.current=selection.context===context&&latestItemContext.current===context?{id:latestItems.current[index]?.id??null,index,context}:null;pendingScroll.current??=list.current?.scrollTop??0;setData(previous=>({...catalog,assets:previous.assets}));if(!intervalEditing.current&&!intervalSaving.current&&catalog.uiPreferences){setIntervalMs(catalog.uiPreferences.quickIntervalMs);setIntervalText(String(catalog.uiPreferences.quickIntervalMs))}setTag(value=>value&&!(catalog.tags??[]).some(item=>item.id===value)?'':value);setProject(value=>value&&!(catalog.projects??[]).some(item=>item.id===value)?'':value);setLoaded(true);
       }catch(error){if(!disposed&&libraryReads.current.accepts(token))throw error}
     };
     refreshLibrary.current=refresh;
@@ -116,6 +120,7 @@ export function App({library}:{library:boolean}) {
         if(disposed){esc();return}unlisten.push(esc);
         const b=await listen<Progress>('queue-progress',e=>{if(!disposed)acceptProgress(e.payload)});
         if(disposed){b();return}unlisten.push(b);
+        const writeFailed=await listen<{kind:string;error:string}>('library-write-failed',event=>setMetadataError(event.payload.error));if(disposed){writeFailed();return}unlisten.push(writeFailed);
         const changed=await listen('library-changed',refreshQuietly);if(disposed){changed();return}unlisten.push(changed);
         window.addEventListener('focus',refreshQuietly);
         const [,info]=await Promise.all([refresh(),invoke<typeof boot>('get_boot')]);
@@ -133,6 +138,9 @@ export function App({library}:{library:boolean}) {
       }catch(error){if(!disposed)setMessage(String(error))}
     };void attach();return()=>{disposed=true;libraryReads.current.invalidate();unlisten.forEach(fn=>fn());window.removeEventListener('focus',refreshQuietly)};
   },[]);
+  useEffect(()=>{if(!loaded||!isTauri())return;let disposed=false;void invoke<Asset[]>('get_case_assets',{caseIds:items.map(record=>record.id)}).then(incoming=>{if(!disposed)setData(previous=>({...previous,assets:[...new Map([...previous.assets,...incoming].map(asset=>[asset.id,asset])).values()]}))}).catch(error=>{if(!disposed)setMessage(String(error))});return()=>{disposed=true}},[loaded,JSON.stringify(items.map(record=>[record.id,record.result,record.refs]))]);
+  const toggleFavorite=async(record:Case)=>{if(favoritePending.current.has(record.id))return;favoritePending.current.add(record.id);const favorite=!record.favorite;setData(previous=>({...previous,cases:previous.cases.map(item=>item.id===record.id?{...item,favorite}:item)}));try{await invoke('set_favorite',{caseId:record.id,favorite,generation:1})}catch(error){setData(previous=>({...previous,cases:previous.cases.map(item=>item.id===record.id?{...item,favorite:record.favorite}:item)}));setMessage('收藏保存失败：'+String(error));void refreshLibrary.current().catch(()=>{})}finally{favoritePending.current.delete(record.id)}};
+  const persistInterval=async()=>{intervalEditing.current=false;const value=Math.max(50,Math.min(10000,Number(intervalText)||data.uiPreferences?.quickIntervalMs||700));setIntervalMs(value);setIntervalText(String(value));intervalSaving.current=true;try{await invoke('set_ui_preferences',{generation:1,patch:{quickIntervalMs:value}})}catch(error){setMessage('间隔保存失败：'+String(error))}finally{intervalSaving.current=false;void refreshLibrary.current().catch(()=>{})}};
   useEffect(()=>{
     if(!loaded||(!library&&(!wake||!panelVisible)))return;
     const sequence=++readySequence.current;
@@ -179,20 +187,20 @@ export function App({library}:{library:boolean}) {
     return()=>{document.removeEventListener('keydown',handle);document.removeEventListener('keyup',release)};
   },[items,selected,interval,dict,library,targetBound]);
   useEffect(()=>{if(skipSelectionScroll.current){skipSelectionScroll.current=false;return}list.current?.querySelector('[data-selected="true"]')?.scrollIntoView({block:'nearest'})},[selected]);
-  const nav=<>{tabs.map(([id,name],i)=><button key={id} className={`${library?'navitem':'tab'} ${tab===id?'active':''}`} title={`Ctrl + Alt + ${i+1}`} onClick={()=>changeTab(id)}>{name}{library&&<span className="count">{data.cases.filter(r=>id==='all'||(id==='fav'?r.favorite:r.used>0)).length}</span>}</button>)}</>;
+  const nav=<>{tabs.map(([id,name],i)=><button key={id} className={`${library?'navitem':'tab'} ${tab===id?'active':''}`} title={`Ctrl + Alt + ${i+1}；点击刷新该集合排序`} onClick={()=>changeTab(id,true)}>{name}{library&&<span className="count">{data.cases.filter(r=>id==='all'||(id==='fav'?r.favorite:r.used>0)).length}</span>}</button>)}</>;
   const searchbox=<label className={library?'global-search':'search-wrap'}><span className="mag">⌕</span><input ref={search} value={query} onChange={e=>onSearchInput(e.target.value)} placeholder="搜索案例名称、提示词、项目、标签…" autoComplete="off" aria-label="搜索案例"/><button className="clear" title="清空关键词" onClick={()=>{setQuery('');search.current?.focus()}}>×</button></label>;
   const card=(r:Case,i:number)=>{
     const p=queueCaseId===r.id&&progress?.caseId===r.id?progress:null;const active=p&&!terminal(p.phase);const complete=p&&p.done===p.total&&p.total>0;
-    return <article key={r.id} className={`case ${selected===i?'selected':''}`} data-case-id={r.id} data-selected={selected===i} onMouseDown={()=>setSelected(i)}>
-      <div className="casehead"><span className={library?'case-title':'title'} title={r.title}><Mark text={r.title} query={query}/></span><span className={library?'case-project':'project'} title={r.project}>· <Mark text={r.project||'独立案例'} query={query}/></span>{r.tags.slice(0,3).map(t=><span key={t} className={library?'tag-chip':'tag'}><Mark text={t} query={query}/></span>)}<span className={`star ${r.favorite?'on':''}`} title="收藏状态 · PoC只读">{r.favorite?'★':'☆'}</span></div>
+    return <article key={r.id} className={`case ${selected===i?'selected':''}`} data-case-id={r.id} data-selected={selected===i} onMouseDown={()=>{if(selected!==i)skipSelectionScroll.current=true;setSelected(i)}}>
+      <div className="casehead"><span className={library?'case-title':'title'} title={r.title}><Mark text={r.title} query={query}/></span><span className={library?'case-project':'project'} title={r.project}>· <Mark text={r.project||'独立案例'} query={query}/></span>{r.tags.slice(0,3).map(t=><span key={t} className={library?'tag-chip':'tag'}><Mark text={t} query={query}/></span>)}<button type="button" className={`star ${r.favorite?'on':''}`} title={r.favorite?'取消收藏':'收藏案例'} aria-label={`${r.favorite?'取消收藏':'收藏'} ${r.title}`} aria-pressed={r.favorite} onClick={event=>{event.stopPropagation();void toggleFavorite(r)}}>{r.favorite?'★':'☆'}</button></div>
       {(r.result||r.refs.length>0)&&<div className="imgline"><Thumb result asset={r.result?assets.get(r.result):undefined} label={r.result?'效果图':'暂无效果'} disabled={library||busy} onClick={()=>void paste(r,'result')}/>{r.refs.length>0&&<><span className="divide"/>{!library&&<button data-paste-kind="queue" data-case-id={r.id} data-request-id={p?.requestId} data-phase={p?.phase} data-done={p?.done} data-total={p?.total} data-current-asset={p?.currentAsset??undefined} className={`queue ${active?'progress':''} ${complete?'complete':''}`} disabled={busy} onClick={()=>void paste(r,'queue')} aria-label={`顺序粘贴 ${r.refs.length} 张参考图`}><span className="fill" style={{height:`${p&&p.total>0?Math.min(100,p.done/p.total*100):0}%`}}/><span className="ins"><span className="symbol">{complete?'✓':'⇧'}</span><span>{active?<>正在<br/>粘贴</>:complete?<>已<br/>触发</>:<>顺序<br/>粘贴</>}</span><span>{p?`${p.done}/${p.total}`:`${r.refs.length}张`}</span></span></button>}<ReferenceCarousel caseId={r.id} visible={library||panelVisible} positions={railPositions.current} imageKey={JSON.stringify(r.refs.map(id=>[id,assets.get(id)?.width,assets.get(id)?.height]))}>{r.refs.map((id,index)=><Thumb key={`${id}-${index}`} asset={assets.get(id)} label={`参考 ${index+1}`} disabled={library||busy} onClick={()=>void paste(r,'reference',index)}/>)}</ReferenceCarousel></>}</div>}
       {library?<div className="prompt"><Mark text={r.prompt} query={query}/></div>:<button className="prompt" data-paste-kind="text" data-case-id={r.id} disabled={busy} onClick={()=>void paste(r,'text')} title="粘贴完整提示词"><span className="clamp"><Mark text={r.prompt} query={query}/></span></button>}
       {library&&<div className="casefoot">{r.refs.length} 张参考图 · 只读 PoC</div>}
     </article>;
   };
   const content=<div ref={list} className={library?'scrollarea':'list'}><div className={library?`gallery ${layout}`:''}>{items.length?items.map(card):<div className="none empty-results"><strong>{loaded?'没有找到匹配的案例':'等待加载资料库'}</strong><div>{loaded?'尝试减少关键词或切换至全部案例。':message||'由 Rust 读取 JSON manifest。'}</div></div>}</div></div>;
-  return <WindowVisible.Provider value={library||panelVisible}><div onPointerDownCapture={interruptForPanelInteraction} onInputCapture={interruptForPanelInteraction} onKeyDownCapture={event=>{if(event.key!=='Escape')interruptForPanelInteraction()}} data-target-bound={targetBound} data-panel-visible={library||panelVisible} data-request-id={progress?.requestId} data-phase={progress?.phase} data-current-asset={progress?.currentAsset??undefined} data-event-timestamp={progress?.timestampMs} className={library?'library-root':'quick-root'}>
-    <section className="panel" aria-label="提示词快捷调用面板"><header className={`bar ${boot.platform==='macos'?'mac-titlebar':''}`}><span className="logo">✦</span><span className="brand" data-tauri-drag-region>Prompt Shelf</span><small>提示词速用 · PoC</small><span className="bar-end"><button className="library-link" onClick={()=>void run('open_library')}>打开主库</button><kbd>Ctrl + Alt + {tab==='recent'?2:tab==='fav'?3:1}</kbd><button className="x" aria-label="隐藏面板" onClick={()=>void dismiss()}>×</button></span></header><div className="controls">{searchbox}<div className="nav">{nav}<span className="line"/>{tags.slice(0,3).map(t=><button key={t} className={`category ${tag===t?'active':''}`} onClick={()=>setTag(tag===t?'':t)}>{t}</button>)}<span className="count">{matches.length>items.length?`前 ${items.length} / ${matches.length}`:items.length} 条</span></div></div>{content}<div className="queue-settings"><label>图间隔 <input type="number" min={100} max={10000} step={100} value={interval} disabled={busy} onChange={e=>setIntervalMs(Math.max(100,Math.min(10000,Number(e.target.value)||100)))}/> ms</label>{busy&&<button className="cancel-queue" onClick={()=>void cancel()}>Esc 停止</button>}<span title="外部输入框按 Ctrl+Alt+1/2/3 可重新绑定；搜索和点击面板不换目标">{targetBound?'目标已绑定':'未绑定目标'} · ↑↓ 选择 · Enter 全文</span></div><div className="legal" role="status" aria-live="polite">{busy&&<span className="paste-spinner" aria-hidden="true"/>}{escapeError||message||'点击提示词或图片粘贴至唤醒前目标 · 队列进度表示已触发指令，不代表目标已接收'}</div></section>
-    {dict&&<div className="demo-dialog" onClick={()=>setDict(false)}><section className="demo-dialog-panel" role="dialog" aria-modal="true" aria-label="搜索词典" onClick={e=>e.stopPropagation()}><h2>搜索词典</h2><p>多词 AND；标题权重高于提示词正文。同组词双向匹配。</p><div className="demo-dict">{dictionary.map(group=><div key={group[0]}>{group.join(' / ')}</div>)}</div><button className="btn" onClick={()=>setDict(false)}>关闭</button></section></div>}
-  </div></WindowVisible.Provider>;
+  return <SearchDictionary.Provider value={data.dictionary??dictionary}><WindowVisible.Provider value={library||panelVisible}><div onPointerDownCapture={interruptForPanelInteraction} onInputCapture={interruptForPanelInteraction} onKeyDownCapture={event=>{if(event.key!=='Escape')interruptForPanelInteraction()}} data-target-bound={targetBound} data-panel-visible={library||panelVisible} data-request-id={progress?.requestId} data-phase={progress?.phase} data-current-asset={progress?.currentAsset??undefined} data-event-timestamp={progress?.timestampMs} className={library?'library-root':'quick-root'}>
+    <section className="panel" aria-label="提示词快捷调用面板"><header className={`bar ${boot.platform==='macos'?'mac-titlebar':''}`}><span className="logo">✦</span><span className="brand" data-tauri-drag-region>Prompt Shelf</span><small>提示词速用 · PoC</small><span className="bar-end"><button className="library-link" onClick={()=>void run('open_library')}>打开主库</button><kbd>Ctrl + Alt + {tab==='recent'?2:tab==='fav'?3:1}</kbd><button className="x" aria-label="隐藏面板" onClick={()=>void dismiss()}>×</button></span></header><div className="controls">{searchbox}<div className="nav">{nav}<span className="line"/>{tags.slice(0,3).map(t=><button key={t.id} className={`category ${tag===t.id?'active':''}`} onClick={()=>setTag(tag===t.id?'':t.id)}>{t.name}</button>)}<span className="count">{matches.length>items.length?`前 ${items.length} / ${matches.length}`:items.length} 条</span></div></div>{content}<div className="queue-settings"><label>图间隔 <input type="number" min={50} max={10000} step={100} value={intervalText} disabled={busy} onFocus={()=>{intervalEditing.current=true}} onBlur={()=>void persistInterval()} onChange={e=>{setIntervalText(e.target.value);const value=Number(e.target.value);if(value>=50&&value<=10000)setIntervalMs(value)}}/> ms</label>{busy&&<button className="cancel-queue" onClick={()=>void cancel()}>Esc 停止</button>}<span title="外部输入框按 Ctrl+Alt+1/2/3 可重新绑定；搜索和点击面板不换目标">{targetBound?'目标已绑定':'未绑定目标'} · ↑↓ 选择 · Enter 全文</span></div><div className="legal" role="status" aria-live="polite">{busy&&<span className="paste-spinner" aria-hidden="true"/>}{escapeError||metadataError||message||'点击提示词或图片粘贴至唤醒前目标 · 队列进度表示已触发指令，不代表目标已接收'}</div></section>
+    {dict&&<div className="demo-dialog" onClick={()=>setDict(false)}><section className="demo-dialog-panel" role="dialog" aria-modal="true" aria-label="搜索词典" onClick={e=>e.stopPropagation()}><h2>搜索词典</h2><p>多词 AND；标题权重高于提示词正文。同组词双向匹配。</p><div className="demo-dict">{(data.dictionary??dictionary).map(group=><div key={group[0]}>{group.join(' / ')}</div>)}</div><button className="btn" onClick={()=>setDict(false)}>关闭</button></section></div>}
+  </div></WindowVisible.Provider></SearchDictionary.Provider>;
 }

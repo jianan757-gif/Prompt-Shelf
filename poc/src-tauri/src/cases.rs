@@ -261,6 +261,13 @@ pub struct EditSessions {
     epoch: std::sync::atomic::AtomicU64,
 }
 impl EditSessions {
+    /// Catalog names in an active editor are strings. Resolve that editor before mutating catalogs.
+    /// The same lock excludes queued begin/stash/save; a completed change invalidates old begin epochs.
+    pub fn while_idle<T>(&self,change:impl FnOnce()->Result<T,String>)->Result<T,String>{
+        let slot=self.current.lock().map_err(|e|e.to_string())?;
+        if slot.is_some(){return Err("resolve_current_editor_before_catalog_change".into())}
+        let result=change()?;self.invalidate_epoch();Ok(result)
+    }
     pub(crate) fn invalidate_epoch(&self) { self.epoch.fetch_add(1, std::sync::atomic::Ordering::AcqRel); }
     pub fn epoch(&self) -> u64 {
         self.epoch.load(std::sync::atomic::Ordering::Acquire)

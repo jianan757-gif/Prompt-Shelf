@@ -1,5 +1,7 @@
 pub mod assets;
 pub mod cases;
+pub mod catalog;
+pub mod usage;
 pub mod clipboard_input;
 pub mod closing;
 pub mod data;

@@ -4,6 +4,17 @@ use serde_json::{json,Value};
 use std::io::{BufRead,Write};
 fn arg<'a>(r:&'a Value,key:&str)->Result<&'a str,String>{r["args"][key].as_str().ok_or(format!("missing {key}"))}
 fn call(s:&Store,e:&EditSessions,r:&Value)->Result<Value,String>{Ok(match r["command"].as_str().unwrap_or(""){
+    "get_library_index"=>serde_json::to_value(s.library_index()?).unwrap(),
+    "get_case_assets"=>serde_json::to_value(s.assets_for_cases(&serde_json::from_value::<Vec<String>>(r["args"]["caseIds"].clone()).map_err(|e|e.to_string())?)?).unwrap(),
+    "catalog_create"=>{let id=e.while_idle(||s.catalog_create(arg(r,"kind")?,arg(r,"name")?))?;json!(id)},
+    "catalog_rename"=>{e.while_idle(||s.catalog_rename(arg(r,"kind")?,arg(r,"id")?,arg(r,"name")?))?;Value::Null},
+    "catalog_delete"=>{let ids=serde_json::from_value::<Vec<String>>(r["args"]["ids"].clone()).map_err(|e|e.to_string())?;e.while_idle(||s.catalog_delete(arg(r,"kind")?,&ids))?;Value::Null},
+    "set_quick_tag"=>{e.while_idle(||s.set_quick_tag(arg(r,"id")?,r["args"]["enabled"].as_bool().unwrap()))?;Value::Null},
+    "reorder_quick_tags"=>{let ids=serde_json::from_value::<Vec<String>>(r["args"]["ids"].clone()).map_err(|e|e.to_string())?;e.while_idle(||s.reorder_quick_tags(&ids))?;Value::Null},
+    "set_favorite"=>{s.set_favorite(arg(r,"caseId")?,r["args"]["favorite"].as_bool().unwrap())?;Value::Null},
+    "set_ui_preferences"=>{s.set_ui_preferences(r["args"]["patch"].clone())?;Value::Null},
+    "save_dictionary"=>{s.save_dictionary(serde_json::from_value::<Vec<Vec<String>>>(r["args"]["groups"].clone()).map_err(|e|e.to_string())?)?;Value::Null},
+    "test_record_use"=>{s.record_use(arg(r,"caseId")?)?;Value::Null},
     "begin_case_edit"=>serde_json::to_value(e.begin_persistent(s,r["args"]["caseId"].as_str(),None,false,e.epoch())?).unwrap(),
     "save_case_draft"=>json!(e.stash(s,arg(r,"sessionId")?,&serde_json::from_value::<CaseDocument>(r["args"]["document"].clone()).map_err(|e|e.to_string())?,r["args"]["saveSeq"].as_u64().ok_or("seq")?)?),
     "commit_case"=>serde_json::to_value(e.save(s,arg(r,"sessionId")?,&serde_json::from_value::<CaseDocument>(r["args"]["document"].clone()).map_err(|e|e.to_string())?)?).unwrap(),
