@@ -1,6 +1,6 @@
 {
   "date": "2026-10-29",
-  "status": "AUTOMATED_PASS_NATIVE_ACCEPTANCE_PENDING",
+  "status": "AUTOMATED_PASS_USER_ACCEPTED_PENDING_EXTERNAL_REVIEW",
   "baseMerge": "6283884821bfdb76fb9263d5e1e0db4e5f15421a",
   "rollbackTag": "baseline-stage-c",
   "branch": "codex/4.4-d-trash",
@@ -150,9 +150,9 @@
     }
   },
   "sourceManifestSha256": "5e0c7bb2b11cc61923a34dd1b12c5cb21f320d0206a377ee22e5c5413048dd01",
-  "nativeWindowsGui": "PENDING",
-  "nativeClipboard": "PENDING",
-  "targetReceipt": "PENDING",
+  "nativeWindowsGui": "USER_REPORTED_PASS_CHECKLIST_1_TO_6_AND_8",
+  "nativeClipboard": "USER_REPORTED_RELEVANT_REGRESSION_PASS_ITEM_7_MANUAL_EXEMPT",
+  "targetReceipt": "USER_REPORTED_CHECKLIST_8_PASS_NO_PER_APP_RAW_LOGS",
   "limits": [
     "Counts overlap; GC/trash tests are included in the Rust library group.",
     "Browser uses real React and Store with a test IPC bridge, not native Tauri windows.",
@@ -177,5 +177,24 @@
     "sqliteVersion": "3.54.1"
   },
   "sourceFilesVerified": 96,
-  "independentTargetedTests": "22 PASS; overlapping subsets, not additive"
+  "independentTargetedTests": "22 PASS; overlapping subsets, not additive",
+  "userAcceptance": {
+    "date": "2026-10-29",
+    "source": "User feedback in project conversation after checklist clarification",
+    "quote": "已全部通过",
+    "passedChecklistItems": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      8
+    ],
+    "manualExemptChecklistItems": [
+      7
+    ],
+    "item7": "Manual testing waived by user; existing automated evidence retained, not native pass.",
+    "limits": "No per-item screenshots or per-application receipt logs supplied; not agent-observed execution."
+  }
 }
