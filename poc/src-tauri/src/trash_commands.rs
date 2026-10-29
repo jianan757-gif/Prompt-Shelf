@@ -1,0 +1,164 @@
+use crate::{publish_change, Runtime};
+use prompt_shelf_poc::{
+    catalog, data, scope::authorize_thumbnails, store::Store, trash::TrashCase,
+};
+use tauri::Manager;
+
+fn validate<R: tauri::Runtime>(
+    window: &tauri::WebviewWindow<R>,
+    generation: u64,
+) -> Result<(), String> {
+    if generation != 1 {
+        return Err("stale_library_generation".into());
+    }
+    if window.label() != "library_manager" {
+        return Err("trash_only_from_library".into());
+    }
+    Ok(())
+}
+async fn change(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    generation: u64,
+    case_id: String,
+    action: fn(&Store, &str) -> Result<(), String>,
+    reason: &'static str,
+) -> Result<(), String> {
+    validate(&window, generation)?;
+    let state = app.state::<Runtime>();
+    {
+        let closing = state.closing.lock().map_err(|e| e.to_string())?;
+        if closing.pending.is_some() {
+            return Err("library_close_pending".into());
+        }
+    }
+    let edits = state.edits.clone();
+    let store = state.store.clone();
+    let entity = case_id.clone();
+    tauri::async_runtime::spawn_blocking(move || edits.while_idle(|| action(&store, &case_id)))
+        .await
+        .map_err(|e| e.to_string())??;
+    publish_change(&app, reason, vec![entity]);
+    Ok(())
+}
+#[tauri::command]
+pub async fn soft_delete_case(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    generation: u64,
+    case_id: String,
+) -> Result<(), String> {
+    change(
+        app,
+        window,
+        generation,
+        case_id,
+        Store::soft_delete_case,
+        "case-deleted",
+    )
+    .await
+}
+#[tauri::command]
+pub async fn restore_case(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    generation: u64,
+    case_id: String,
+) -> Result<(), String> {
+    change(
+        app,
+        window,
+        generation,
+        case_id,
+        Store::restore_case,
+        "case-restored",
+    )
+    .await
+}
+#[tauri::command]
+pub async fn permanently_delete_case(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    generation: u64,
+    case_id: String,
+) -> Result<(), String> {
+    change(
+        app,
+        window,
+        generation,
+        case_id,
+        Store::permanently_delete_case,
+        "case-permanently-deleted",
+    )
+    .await
+}
+#[tauri::command]
+pub async fn get_case_delete_draft(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    case_id: String,
+) -> Result<Option<String>, String> {
+    validate(&window, 1)?;
+    let store = app.state::<Runtime>().store.clone();
+    tauri::async_runtime::spawn_blocking(move || store.case_delete_draft(&case_id))
+        .await
+        .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+pub async fn get_trash_index(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+) -> Result<Vec<TrashCase>, String> {
+    validate(&window, 1)?;
+    let store = app.state::<Runtime>().store.clone();
+    tauri::async_runtime::spawn_blocking(move || store.trash_index())
+        .await
+        .map_err(|e| e.to_string())?
+}
+#[tauri::command]
+pub async fn get_trash_assets(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    case_ids: Vec<String>,
+) -> Result<Vec<data::Asset>, String> {
+    validate(&window, 1)?;
+    let store = app.state::<Runtime>().store.clone();
+    let reader = store.clone();
+    let assets = tauri::async_runtime::spawn_blocking(move || reader.trash_assets(&case_ids))
+        .await
+        .map_err(|e| e.to_string())??;
+    let snapshot = data::Library {
+        cases: vec![],
+        assets,
+        projects: vec![],
+        tags: vec![],
+        trash_count: 0,
+        ui_preferences: catalog::default_preferences(),
+        dictionary: vec![],
+    };
+    authorize_thumbnails(&app, &store, &snapshot)?;
+    Ok(snapshot.assets)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn trash_commands_require_main_library_and_current_generation() {
+        use tauri::{test::mock_app, WebviewUrl, WebviewWindowBuilder};
+        let app = mock_app();
+        let main = WebviewWindowBuilder::new(
+            &app,
+            "library_manager",
+            WebviewUrl::App("index.html".into()),
+        )
+        .build()
+        .unwrap();
+        let quick =
+            WebviewWindowBuilder::new(&app, "quick_panel", WebviewUrl::App("index.html".into()))
+                .build()
+                .unwrap();
+        assert!(super::validate(&main, 1).is_ok());
+        assert!(super::validate(&main, 2).is_err());
+        assert!(super::validate(&quick, 1).is_err());
+    }
+}

@@ -1,0 +1,46 @@
+[
+  {
+    "name": "gc-tests",
+    "exe": "prompt_shelf_poc-baa7045bd5adb6f3.exe",
+    "exeSha256Before": "b4ce232169c54f893de0ffef462c4126263516820f3ce0da08a737e88ae1088a",
+    "exeSha256After": "b4ce232169c54f893de0ffef462c4126263516820f3ce0da08a737e88ae1088a",
+    "exeUnchanged": true,
+    "filter": "gc::tests",
+    "exitCode": 0,
+    "result": "PASS",
+    "summary": "running 11 tests | test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 50 filtered out; finished in 0.93s"
+  },
+  {
+    "name": "trash-tests",
+    "exe": "prompt_shelf_poc-baa7045bd5adb6f3.exe",
+    "exeSha256Before": "b4ce232169c54f893de0ffef462c4126263516820f3ce0da08a737e88ae1088a",
+    "exeSha256After": "b4ce232169c54f893de0ffef462c4126263516820f3ce0da08a737e88ae1088a",
+    "exeUnchanged": true,
+    "filter": "trash::tests",
+    "exitCode": 0,
+    "result": "PASS",
+    "summary": "running 5 tests | test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 56 filtered out; finished in 0.17s"
+  },
+  {
+    "name": "trash-queue-tests",
+    "exe": "prompt_shelf_poc-89b34ed843601f27.exe",
+    "exeSha256Before": "74ebe21e595c0c341e771d47a5b4ebddcbbea992386da5b9eacef022fa92f8fb",
+    "exeSha256After": "74ebe21e595c0c341e771d47a5b4ebddcbbea992386da5b9eacef022fa92f8fb",
+    "exeUnchanged": true,
+    "filter": "trash_queue_tests",
+    "exitCode": 0,
+    "result": "PASS",
+    "summary": "running 2 tests | test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 35 filtered out; finished in 0.29s"
+  },
+  {
+    "name": "store-cli-integration",
+    "exe": "store_cli-123bbab77884e073.exe",
+    "exeSha256Before": "3d1aa819e4152431a449950b4c233b70f9c298b2322830faa542153ff9e9a217",
+    "exeSha256After": "3d1aa819e4152431a449950b4c233b70f9c298b2322830faa542153ff9e9a217",
+    "exeUnchanged": true,
+    "filter": null,
+    "exitCode": 0,
+    "result": "PASS",
+    "summary": "running 4 tests | test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s"
+  }
+]

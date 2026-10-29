@@ -196,7 +196,8 @@ fn missing_original_or_unknown_asset_never_saves_formal_case() {
     let mut d = document(&store, "缺失");
     d.project = "不应登记".into();
     d.references = vec![reference(&id, "x")];
-    let original = store.library().unwrap().assets[0].original.clone();
+    let relative:String=store.connection.lock().unwrap().query_row("SELECT relative_path FROM assets WHERE id=?1",[&id],|r|r.get(0)).unwrap();
+    let original = store.paths().resolve(&relative,"assets").unwrap();
     std::fs::remove_file(original).unwrap();
     assert!(store.commit_case(&d).is_err());
     assert_eq!(store.counts().unwrap().0, 0);

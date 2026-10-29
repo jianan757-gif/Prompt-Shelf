@@ -158,3 +158,29 @@ cargo test --manifest-path src-tauri/Cargo.toml --locked --test browser_store --
 pnpm test:catalog
 node scripts/check-ui-build.mjs stage-c
 ```
+
+## D 回收站与安全清理
+
+revision `4.4-d`，schema 仍为 2，无迁移或新增依赖。普通卡片可移入回收站，正常列表和快捷面板立即排除；4.5 秒撤销调用同一 SQLite 恢复操作。回收卡沿用 V5.0 冻结样式，显示前三张缩略图、剩余数、删除前项目、参考图数、正文摘要、共享提示及恢复/永久删除。原项目被删除后，恢复为独立案例。
+
+共享提示只统计本卡独立图片中被其他正常或回收站案例使用的张数；同案重复不算共享，草稿另参与文件保护。软删及永久删除均先处理当前编辑与该案例任何未结束草稿，包含干净影子稿；明确放弃草稿后，永久删除仍需单独二次确认。草稿可恢复继续编辑，回收站目标可作为新草稿继续。失败保留卡片、输入和可重试操作。
+
+永久删除只在事务中删除案例关系、更新候选状态。资源协调锁按“编辑会话 → 资源 → DB”顺序覆盖导入准备、资产登记、关系变更及 GC；本运行导入资产与输出快照原图保留至 Store 结束，覆盖导入登记到草稿挂接的空窗，队列取消或完成不释放输出保护。保留 A–C 的 13px Dock、连续粘贴、焦点及 Esc 行为。
+
+GUI 在启动、接受任务前执行统一候选清理，重新查正式/回收站/草稿引用。Windows 持有剪贴板读取锁直至清理结束；CF_HDROP 仍引用候选、剪贴板忙或解析不可靠时继续保留。按数据库已登记路径定点校验管理目录及链接边界后删文件，失败保留 pending 下次重试。候选文件已缺失可收尾；相同 hash 再导入会重建原图。**孤立 staging 和未登记原图保守保留，本阶段不扫描目录或清理磁盘全部孤儿。** 外部软件没有统一接收回执，自动化只证明本应用可观察引用和派发行为。
+
+离线 `--check` 继续校验完整性、外键及所有已登记原图 hash。仅无任何案例/草稿引用、pending 且原图确实缺失时，成功返回 `recoverablePendingMissing`/IDs，`originalHashes` 明确为 `ok_except_recoverable_pending_missing`，供 GUI 启动收尾；有引用或 live 缺图、已有文件损坏仍失败。全量编辑恢复资产投影只含有引用资产，孤儿缺图不阻断有效草稿。
+
+新增模块为 `src-tauri/src/trash.rs`、`gc.rs`、`clipboard_gc.rs`、`trash_commands.rs`；UI 为 `src/library/TrashCard.tsx`、`TrashDialogs.tsx` 与局部 `src/library-d.css`。报告和实际 React 截图见 `reports/stage-d/`。自动化只使用自建临时合成库；Windows GUI、真实剪贴板及外部应用接收待人工验收。最终 GUI 由主控通过 Tauri CLI 构建至 `src-tauri/target-stage-d`，保留 C 产物；开发阶段不提交、不推送、不自动合并 main，不进入 E/F。
+
+```powershell
+pnpm test
+pnpm build
+node scripts/check-ui-build.mjs stage-d
+cargo test --manifest-path src-tauri/Cargo.toml --locked --lib --bin prompt-shelf-poc --test store_cli --test scope_refresh --target-dir src-tauri/target-stage-d
+# 测试桥 JSON 编译输出与 stderr 分开保存；PLAYWRIGHT_MODULE 可指向现成安装。
+cargo test --manifest-path src-tauri/Cargo.toml --locked --test browser_store --no-run --message-format=json --target-dir src-tauri/target-stage-d 1> reports/stage-d/browser-bridge-build.jsonl 2> reports/stage-d/browser-bridge-build.txt
+pnpm test:trash
+$env:PROMPT_SHELF_TEST_PHASE = 'stage-d'
+pnpm test:catalog
+```

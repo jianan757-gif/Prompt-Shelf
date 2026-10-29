@@ -1,0 +1,12 @@
+PASS soft delete excludes live/quick views; same persisted restore operation undoes without content/revision loss
+PASS V5 recycle cards show 3 real thumbnails plus remainder, original project/reference count, prompt and entity-level sharing
+PASS trash search and real count refresh; another trashed case remains a distinct sharing entity
+PASS 4.5-second undo expires without deleting persisted trash records
+PASS permanent delete requires second confirmation; transport failure retains card/dialog and retry updates sharing
+PASS restore failure is visible outside a modal; retry restores complete case independently after project deletion
+PASS delete preflight preserves unresolved draft on cancel and can recover the actual draft for editing
+PASS entering recycle view uses existing save/stay/discard editor guard
+PASS explicit draft discard precedes soft delete and never saves discarded draft over formal content
+PASS anomalous trash draft can continue as a new draft without reviving or deleting its original case
+PASS even a clean orphan draft requires explicit resolution, then a separate permanent-delete confirmation
+PASS trash content and count persist across independent bridge process restart

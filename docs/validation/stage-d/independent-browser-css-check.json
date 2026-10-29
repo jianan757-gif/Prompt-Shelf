@@ -1,0 +1,28 @@
+{
+  "pass": 12,
+  "fail": 0,
+  "sha256": "12c525cb02a5a6915e8cbb1f98024dcc24431106ef0f7bb2df913d7bd777c227",
+  "responsiveV5Rules": [
+    {
+      "prototypeSelector": ".trashcase .tr-pics",
+      "productSelector": ".library-root .trashcase .tr-pics",
+      "prototypeRule": "max-width:34%",
+      "productRule": "max-width:34%",
+      "match": true
+    },
+    {
+      "prototypeSelector": ".trashcase .tr-pic",
+      "productSelector": ".library-root .trashcase .tr-pic",
+      "prototypeRule": "width:40px;height:40px",
+      "productRule": "width:40px;height:40px",
+      "match": true
+    },
+    {
+      "prototypeSelector": ".v50-modal",
+      "productSelector": ".library-root .v50-modal",
+      "prototypeRule": "padding:18px",
+      "productRule": "padding:18px",
+      "match": true
+    }
+  ]
+}

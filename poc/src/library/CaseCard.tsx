@@ -20,7 +20,7 @@ function LibraryThumbnail({asset,label,result,notice}:{asset?:Asset;label:string
   </button>;
 }
 /** Browse only: no editor/draft state or optimistic write is created in this stage. */
-export function CaseCard({record,query,assets,positions,notice,onEdit,onSource,onFavorite,favoritePending,dictionary}:{record:Case;query:string;assets:Map<string,Asset>;positions:Map<string,number>;notice:(text:string)=>void;onEdit:()=>void;onSource:(value:string)=>void;onFavorite:()=>void;favoritePending?:boolean;dictionary?:string[][]}){
+export function CaseCard({record,query,assets,positions,notice,onEdit,onSource,onFavorite,onDelete,favoritePending,dictionary}:{record:Case;query:string;assets:Map<string,Asset>;positions:Map<string,number>;notice:(text:string)=>void;onEdit:()=>void;onSource:(value:string)=>void;onFavorite:()=>void;onDelete?:()=>void;favoritePending?:boolean;dictionary?:string[][]}){
   const source=safeSource(record.sourceUrl);const stamp=dateLabel(record.updatedAt??record.createdAt);
   return <article className="case" data-case-id={record.id} data-case-state="saved" data-editable="false">
     <div className="casehead"><span className="case-title" title={record.title}><Mark text={record.title} query={query} dictionary={dictionary}/></span><span className="case-project" title={record.project}>{'· '}<Mark text={record.project||'独立案例'} query={query} dictionary={dictionary}/></span>
@@ -39,6 +39,6 @@ export function CaseCard({record,query,assets,positions,notice,onEdit,onSource,o
       </ReferenceCarousel>}
     </div>}
     <div className="prompt"><Mark text={record.prompt} query={query} dictionary={dictionary}/></div>
-    <div className="casefoot"><span>{stamp&&`${stamp} · `}{record.refs.length} 张参考图{record.result?' · 1 张效果图':''}</span></div>
+    <div className="casefoot"><span>{stamp&&`${stamp} · `}{record.refs.length} 张参考图{record.result?' · 1 张效果图':''}</span>{onDelete&&<button type="button" className="quiet-delete" aria-label={`将 ${record.title} 移入回收站`} onClick={onDelete}><Icon name="trash" size={13}/> 移入回收站</button>}</div>
   </article>;
 }

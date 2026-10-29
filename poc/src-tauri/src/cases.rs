@@ -124,6 +124,7 @@ impl Store {
         self.commit_case_consuming(document, None)
     }
     pub(crate) fn commit_case_consuming(&self, document: &CaseDocument, draft_id: Option<&str>) -> Result<SavedCase, String> {
+        let _resources = self.resources.lock().map_err(|e| e.to_string())?;
         if document.title.trim().is_empty() {
             return Err("case_title_required".into());
         }
@@ -227,6 +228,7 @@ impl Store {
             }
         }
         if let Some(id) = draft_id { tx.execute("DELETE FROM drafts WHERE id=?1",[id]).map_err(sql)?; }
+        crate::gc::mark_unreferenced(&tx)?;
         tx.commit().map_err(sql)?;
         Ok(SavedCase {
             id: document.id.clone(),
@@ -243,6 +245,14 @@ impl Store {
         if case.edit_revision != expected {
             return Err("case_changed_refresh_and_retry".into());
         }
+        Ok(snapshot)
+    }
+    /// A queue owns immutable paths after this returns, even if the source case is deleted.
+    /// Keep the files until process exit: CF_HDROP can outlive queue completion/cancellation.
+    pub fn output_snapshot_at_revision(&self, id: &str, expected: u64) -> Result<crate::data::Library, String> {
+        let mut resources = self.resources.lock().map_err(|e| e.to_string())?;
+        let snapshot = self.case_snapshot_at_revision(id, expected)?;
+        resources.output.extend(snapshot.assets.iter().map(|a| a.id.clone()));
         Ok(snapshot)
     }
 }
