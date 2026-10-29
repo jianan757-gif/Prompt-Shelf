@@ -2,7 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),assert=require('node:assert/strict');
 const {randomUUID}=require('node:crypto');const {spawn}=require('node:child_process'),{createInterface}=require('node:readline'),{pathToFileURL}=require('node:url');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
-const root=path.resolve(__dirname,'../../..'),poc=path.join(root,'poc'),report=path.join(poc,'reports/stage-e-scope-warning');
+const root=path.resolve(__dirname,'../../..'),poc=path.join(root,'poc'),report=path.join(poc,'reports',process.env.PROMPT_SHELF_TEST_PHASE||'stage-e-scope-warning');
 const tmp=fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(),'prompt-shelf-e-warning-')));fs.writeFileSync(path.join(tmp,'browser-test-owned'),'stage E test');
 const artifact=fs.readFileSync(path.join(report,'browser-bridge-build.jsonl'),'utf8').replace(/^\uFEFF/,'').split(/\r?\n/).flatMap(line=>{try{return [JSON.parse(line)]}catch{return []}}).find(x=>x.reason==='compiler-artifact'&&x.target.name==='browser_store'&&x.executable);
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));const checks=[],calls=[],errors=[],pages=[];const stamp=new Date().toISOString().replace(/[:.]/g,'-');let worker,browser,server,next=0,pending=new Map();

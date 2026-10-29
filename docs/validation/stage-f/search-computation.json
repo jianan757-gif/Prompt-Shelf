@@ -1,0 +1,11 @@
+{
+  "cases": 100,
+  "assets": 500,
+  "samples": 600,
+  "p50Ms": 0.5248000000000275,
+  "p95Ms": 0.950300000000027,
+  "maxMs": 1.9003999999999905,
+  "method": "Node production filterCases, synthetic fixture, warmed, 100 rounds x 6 queries; pure computation only",
+  "uiLatency": "NOT_MEASURED",
+  "threshold": "NOT_APPROVED"
+}

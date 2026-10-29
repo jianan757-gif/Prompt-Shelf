@@ -1,0 +1,2 @@
+Seeded isolated trash, favorite, recent use and shared-image draft
+PASS dedicated test identity install, upgrade, uninstall, reinstall; logical records and original SHA-256 unchanged.

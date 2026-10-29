@@ -1,5 +1,12 @@
 # Changelog
 
+## F Windows 交付候选 0.2.0-beta.1 — 2026-10-29
+
+- E 及 bb9f6d8 通过独立审核，完整历史合并 main（68d675a），回退标签 baseline-stage-e。
+- 新增 NSIS 当前用户安装与保数据卸载 hook，统一产品名称和候选版信息；保留 identifier、资料路径、schema 2 和已验收 UI。
+- 独立测试身份安装/升级/卸载/重装及自动化回归通过；用户确认 F 人工清单全部通过。证据与量化资源验证边界见 docs/public/stage-f-delivery.md。
+- 仅提交 F 开发分支待独立审核，不合并 main，不发布稳定版。
+
 ## E 备份与恢复候选 — 2026-10-29
 
 - D 通过用户及独立审核，保留历史合并 main（5b92cd4），回退标签 `baseline-stage-d` 指向 6e2d3e7。
