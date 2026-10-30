@@ -1,0 +1,10 @@
+{
+  "os": "Microsoft Windows 11 家庭版",
+  "build": "22631",
+  "cpu": "12th Gen Intel(R) Core(TM) i5-12600K",
+  "logicalProcessors": 16,
+  "ramGiB": 31.75,
+  "powerPlan": "电源方案 GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (平衡)",
+  "sampling": "real Windows native app; existing warm WebView2 profile; isolated synthetic SQLite/assets",
+  "gpu": "not sampled"
+}

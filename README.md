@@ -2,11 +2,15 @@
 
 Windows 优先的图文提示词管理与快捷调用桌面工具，采用 **Tauri 2 + Rust + React/TypeScript**。
 
-**E（含 bb9f6d8 修复）已通过用户及独立审核，以 68d675a 保留完整历史合并 main；回退标签 `baseline-stage-e` 指向 bb9f6d8，schema 保持 2。** F Windows 集成与交付准备位于 `codex/4.4-f-delivery`，候选版本 0.2.0-beta.1，用户已确认人工验收全部通过，待独立审核，不代表稳定版发布。macOS 仅预留平台隔离。
+**A–F 已通过用户验收及独立审核。** F 于 2915ed8 保留完整历史合并 main，回退标签 `baseline-stage-f` 指向 8358d6d；schema 保持 2。当前处于最终发布准备（codex/release-preparation），候选版本仍为 0.2.0-beta.1，尚未发布稳定版。macOS 仅预留平台隔离。
+
+## 最终发布准备
+
+[准备报告、卸载复选框及性能补测步骤](docs/public/release-preparation.md)。卸载保护与性能补证已整理，等待最终审核；本次性能窗口切换另获用户授权使用 Computer Use，托盘退出由用户完成，不发布稳定版。
 
 ## F 候选版验收
 
-F 已通过用户实机验收，尚待独立审核：[交付结果及人工清单](docs/public/stage-f-delivery.md)。根目录执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-stage-f.ps1` 构建本地 NSIS/EXE；`scripts/start-stage-f.ps1 -Fixture empty` 在独立测试库运行。首次默认隐藏，通过托盘或 Ctrl+Alt+1 呼出；更换版本前正常退出旧程序。
+F 已通过用户实机验收和独立审核：[交付结果及人工清单](docs/public/stage-f-delivery.md)。根目录执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-stage-f.ps1` 构建本地 NSIS/EXE；`scripts/start-stage-f.ps1 -Fixture empty` 在独立测试库运行。首次默认隐藏，通过托盘或 Ctrl+Alt+1 呼出；更换版本前正常退出旧程序。
 
 安装包在 `poc/src-tauri/target-stage-f/release/bundle/nsis/`，当前候选包副本在 `evidence/stage-f/candidate/`，不上传 Release。所有安装升级卸载测试使用独立测试身份/Windows 测试账户；正常资料位置和应用 identifier 保持不变。
 

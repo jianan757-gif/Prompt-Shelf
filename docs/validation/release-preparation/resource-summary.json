@@ -1,0 +1,47 @@
+[
+  {
+    "state": "final-corrected-hidden",
+    "seconds": 60.6866717,
+    "samples": 60,
+    "privateMiB_P95": 266.984375,
+    "workingMiB_P95": 412.58984375,
+    "cpuPercentMachineMean": 0.07604179494167201
+  },
+  {
+    "state": "final-corrected-quick",
+    "seconds": 60.623728,
+    "samples": 60,
+    "privateMiB_P95": 221.78125,
+    "workingMiB_P95": 428.65234375,
+    "cpuPercentMachineMean": 0.28941732681224924
+  },
+  {
+    "state": "final-corrected-library",
+    "seconds": 60.6526277,
+    "samples": 60,
+    "privateMiB_P95": 341.05078125,
+    "workingMiB_P95": 591.36328125,
+    "cpuPercentMachineMean": 0.07337838024583984
+  },
+  {
+    "state": "final-corrected-library-closed",
+    "seconds": 60.731330699999994,
+    "samples": 60,
+    "privateMiB_P95": 265.83984375,
+    "workingMiB_P95": 456.73046875,
+    "cpuPercentMachineMean": 0.0032511403274239643
+  },
+  {
+    "state": "normal-exit-observed",
+    "rootPid": 36356,
+    "transitionSeconds": 120.2141906,
+    "transitionSamples": 119,
+    "postExitSamples": 23,
+    "postExitObservedSeconds": 22.3105661,
+    "trackedProcessCount": 0,
+    "privateBytes": 0,
+    "workingBytes": 0,
+    "cpuPercentMachine": 0,
+    "method": "Post-exit tail, not full transition percentile. Zero process count independently establishes zero resource usage."
+  }
+]

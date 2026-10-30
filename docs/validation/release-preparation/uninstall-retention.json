@@ -1,0 +1,36 @@
+{
+  "status": "PASS",
+  "data": "all SQL rows and original SHA-256 unchanged",
+  "schema": 2,
+  "identity": "io.github.promptshelf.stagef.validation",
+  "checkbox": "USER_CONFIRMED_CHECKED_AND_COMPLETED_UNINSTALL",
+  "beforeHash": "3D8F46B2DCC5C8E6ADDCAF72D0CE15727C7188F8BB8DCED1233D7939C2AEE770",
+  "afterHash": "3D8F46B2DCC5C8E6ADDCAF72D0CE15727C7188F8BB8DCED1233D7939C2AEE770",
+  "userFeedback": "已勾选并完成卸载",
+  "check": {
+    "assets": 500,
+    "caseAssetReferences": 501,
+    "cases": 99,
+    "foreignKeys": "ok",
+    "integrity": "ok",
+    "originalHashes": "ok",
+    "recoverablePendingMissing": 0,
+    "recoverablePendingMissingIds": [],
+    "schemaVersion": 2,
+    "sqliteVersion": "3.54.1"
+  },
+  "tableCounts": {
+    "assets": 500,
+    "case_assets": 501,
+    "case_tags": 200,
+    "cases": 100,
+    "draft_assets": 5,
+    "draft_pending_tags": 0,
+    "draft_tags": 2,
+    "drafts": 1,
+    "projects": 7,
+    "settings": 0,
+    "synonym_groups": 0,
+    "tags": 6
+  }
+}

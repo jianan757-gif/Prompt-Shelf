@@ -1,0 +1,7 @@
+{
+  "samples": 10,
+  "p50Ms": 65.5873,
+  "p95Ms": 90.7651,
+  "maxMs": 90.7651,
+  "method": "last 10 explicit Computer Use hotkey/Esc cycles after all idle-state samples; whole-session 14 values retained separately"
+}

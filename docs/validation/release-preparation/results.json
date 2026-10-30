@@ -1,0 +1,19 @@
+{
+  "stage": "final-release-preparation",
+  "branch": "codex/release-preparation",
+  "baseline": "baseline-stage-f",
+  "fMerge": "2915ed8",
+  "productChanges": "NONE",
+  "guiAndInstaller": "HASH_MATCH_ACCEPTED_F",
+  "auxiliaryCli": "REBUILT_AND_CHECKED_ON_ISOLATED_LIBRARY",
+  "activeDeleteCheckbox": "PASS_USER_CONFIRMED_CHECKED; ALL_SQL_ROWS_AND_500_ORIGINAL_HASHES_IDENTICAL; INTEGRITY_AND_FOREIGN_KEYS_OK",
+  "performance": "RECORDED: corrected fractional CPU in four live states; first confirmed normal exit has 23 consecutive zero-process samples; warm wake10/search30/library single observation",
+  "thresholds": "NONE",
+  "release": "NOT_CREATED",
+  "review": "PENDING",
+  "samplingToolFix": "Math.Max integer overload corrected to double; original CPU figures invalidated; product unchanged",
+  "responseEvidencePid": 36356,
+  "correctedResourcePid": 34864,
+  "finalTestProcessCleanup": "PASS_USER_CONFIRMED_NORMAL_EXIT; SEVEN_TRACKED_PID_START_TIME_IDENTITIES_EXITED; POINT_IN_TIME_CHECK_NOT_LATENCY",
+  "state": "supplemental-evidence-recorded-pending-final-review"
+}

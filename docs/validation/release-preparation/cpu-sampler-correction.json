@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "before": 0,
+  "after": 0.2,
+  "cause": "PowerShell overload binding picked integer Math.Max with integer literal zero",
+  "affected": "CPU below .5 rounded to zero; prior live-state CPU aggregates invalid",
+  "unaffected": "memory, process counts, elapsed time, response logs, exit counts"
+}

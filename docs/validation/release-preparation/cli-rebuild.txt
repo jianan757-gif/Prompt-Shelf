@@ -1,0 +1,2 @@
+   Compiling prompt-shelf-poc v0.2.0-beta.1 (<repo>\poc\src-tauri)
+    Finished `release` profile [optimized] target(s) in 18.35s
