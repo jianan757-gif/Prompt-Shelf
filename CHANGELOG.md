@@ -1,5 +1,12 @@
 # Changelog
 
+## A～F 及最终准备结项 — 2026-10-30
+
+- A～F、最终卸载保护补测及性能补证通过用户验收和 ChatGPT 独立审核；完整历史合并 main（060cb91）。
+- 回退标签 `baseline-release-preparation` 指向最新审核提交 `2d614ad`，保留此前阶段标签与全部证据。
+- 版本保持 `0.2.0-beta.1`，定位 Windows 内部测试候选版。安装包 SHA-256 与已验收产物一致；本轮仅合并、文档收尾及只读产物核对，没有重新构建、修改产品代码或重跑全量测试。
+- 最终安装/升级/备份恢复/数据目录/已知限制见 `docs/public/final-handoff.md`。未创建 GitHub Release，未发布稳定版，未上传本地构建产物。
+
 ## F Windows 交付候选 0.2.0-beta.1 — 2026-10-29
 
 - E 及 bb9f6d8 通过独立审核，完整历史合并 main（68d675a），回退标签 baseline-stage-e。

@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-10-30T08:14:18.9759440+08:00",
+  "reviewedCommit": "2d614ad051ab740f24517e04694313b9cb11e568",
+  "mergeCommit": "060cb917e9cfd6acfcf7c0ff8d8e1eb0c57fbd85",
+  "rollbackTag": "baseline-release-preparation",
+  "version": "0.2.0-beta.1",
+  "distribution": "Windows internal test candidate only",
+  "schema": 2,
+  "artifacts": [
+    {
+      "artifact": "GUI",
+      "file": "prompt-shelf-poc.exe",
+      "bytes": 15549952,
+      "version": "0.2.0-beta.1",
+      "sha256": "B7508445273A9F6E7AF647950665CA75F2644A0FDDD85586919CCFE64164373E",
+      "matchesReviewedArtifact": true
+    },
+    {
+      "artifact": "CLI",
+      "file": "prompt-shelf-store.exe",
+      "bytes": 3229184,
+      "version": "0.2.0-beta.1",
+      "sha256": "7B545AFE258D95C725777D33278732FA01F31373D236524D91338E430D9E5DEA",
+      "matchesReviewedArtifact": true
+    },
+    {
+      "artifact": "Installer",
+      "file": "Prompt Shelf_0.2.0-beta.1_x64-setup.exe",
+      "bytes": 4454625,
+      "version": "0.2.0-beta.1",
+      "sha256": "2BCA30D99AE05789CBDC6E8CF214A6DE4E753F49B48BD14BC2132BDF0964F2ED",
+      "matchesReviewedArtifact": true
+    }
+  ],
+  "method": "Read-only local file SHA-256/version verification against reviewed artifact-check.json; no rebuild, no database access, no test rerun",
+  "releaseCreated": false,
+  "artifactsUploaded": false
+}

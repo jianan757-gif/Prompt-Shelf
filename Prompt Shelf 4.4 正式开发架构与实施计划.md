@@ -262,7 +262,7 @@ flowchart LR
 
 建议随本方案一并确认的默认选择：**单库单编辑器；SQLite 草稿随完整备份；最近使用按至少一次成功派发计；物理清理保守延后；整体恢复非合并；先沿用轻量内存搜索，性能证据需要时再调整。** 这些是可实现的具体默认策略，不代表已经得到单独批准。
 
-按阶段交付审查。E 及修复 bb9f6d8 已通过用户与独立审核，保留完整历史合并 main（68d675a），baseline-stage-e 指向 bb9f6d8。当前已授权 F Windows 集成与交付准备，在 codex/4.4-f-delivery 实施；保留 A–E 功能、UI 与 schema 2，所有升级卸载异常测试使用独立库。F 完成后等待用户验收与独立审核，未经审核不合并 main，不发布稳定版。
+按阶段交付审查。2026-10-30：A～F及最终发布准备已通过用户验收和ChatGPT独立审核，正式收尾。最终审核提交2d614ad以060cb91保留完整历史合并main；baseline-release-preparation指向2d614ad。保留A～F功能、定稿UI及schema 2；当前0.2.0-beta.1仅为Windows内部测试候选版。最终交付说明见docs/public/final-handoff.md；后续等待发布指令，不自动新增功能、创建Release、发布稳定版或上传本地构建产物。
 
 ## 审查依据
 

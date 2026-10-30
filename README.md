@@ -2,11 +2,11 @@
 
 Windows 优先的图文提示词管理与快捷调用桌面工具，采用 **Tauri 2 + Rust + React/TypeScript**。
 
-**A–F 已通过用户验收及独立审核。** F 于 2915ed8 保留完整历史合并 main，回退标签 `baseline-stage-f` 指向 8358d6d；schema 保持 2。当前处于最终发布准备（codex/release-preparation），候选版本仍为 0.2.0-beta.1，尚未发布稳定版。macOS 仅预留平台隔离。
+**A–F 开发及最终发布准备已完成，并通过用户验收和 ChatGPT 独立审核。** 最终审核提交 `2d614ad` 已于 `060cb91` 保留完整历史合并 main；回退标签 `baseline-release-preparation` 指向 `2d614ad`。版本保持 **0.2.0-beta.1（Windows 内部测试候选版）**，schema 保持 2；尚未创建 GitHub Release 或发布稳定版，macOS 仅预留平台隔离。
 
 ## 最终发布准备
 
-[准备报告、卸载复选框及性能补测步骤](docs/public/release-preparation.md)。卸载保护与性能补证已整理，等待最终审核；本次性能窗口切换另获用户授权使用 Computer Use，托盘退出由用户完成，不发布稳定版。
+[最终交付说明](docs/public/final-handoff.md)包含安装、升级、备份恢复、数据目录及已知限制。[最终准备报告](docs/public/release-preparation.md)及其验证证据继续保留：主动勾选删除数据的卸载保护补测、性能基线和测试进程退出核对均已完成并通过审核；性能结果为实测基线，未设达标阈值。
 
 ## F 候选版验收
 
@@ -39,7 +39,7 @@ F 已通过用户实机验收和独立审核：[交付结果及人工清单](doc
 - 560 默认宽度、圆形半透明图片翻页按钮；主库按需创建及销毁。
 - 100 案例/500 图片合成样本生成、搜索与窗口响应埋点、资源采样工具。
 
-阶段 A 已接入 SQLite 数据读取与显式离线样本导入。B1 已实现新建、编辑、手动保存及图片基础管理；B2 已实现自动草稿、恢复及未保存关闭保护；C 已实现分类、收藏、最近使用、词典及偏好；D 已实现回收站与保守清理；E 已实现备份恢复，F 补安装与交付验证。目标软件可能选择不同剪贴板格式或转码；进度代表已派发，不代表上传完成。完整逐应用兼容性矩阵、资源基线及性能阈值仍缺专项记录。
+阶段 A 已接入 SQLite 数据读取与显式离线样本导入。B1 已实现新建、编辑、手动保存及图片基础管理；B2 已实现自动草稿、恢复及未保存关闭保护；C 已实现分类、收藏、最近使用、词典及偏好；D 已实现回收站与保守清理；E 已实现备份恢复，F 已完成安装与交付验证。目标软件可能选择不同剪贴板格式或转码；进度代表已派发，不代表上传完成。资源及响应基线见最终准备报告，未批准性能阈值；逐应用版本明细和跨环境专项验证仍有限。
 
 ## 本地构建与启动（Windows）
 
@@ -50,28 +50,16 @@ git clone --branch main https://github.com/tangchiji/Prompt-Shelf.git
 cd Prompt-Shelf
 cd poc
 pnpm install --frozen-lockfile
-$env:CARGO_TARGET_DIR = Join-Path (Get-Location) 'src-tauri\target-stage-d'
-pnpm tauri build --no-bundle -- --locked
-cargo build --manifest-path src-tauri/Cargo.toml --release --bin prompt-shelf-store --locked
 cd ..
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\start-stage-d.ps1" -Fixture empty
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-stage-f.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-stage-f.ps1 -Fixture empty
 ```
 
-样本生成器拒绝覆盖已有 `fixtures/100x500`。ExecutionPolicy Bypass 仅用于该 PowerShell 进程。当前构建输出在 `poc/src-tauri/target-stage-d/release/`，不生成安装器。上述脚本使用 `evidence/stage-d/manual-empty`，首次为空库，重启继续读取同一 SQLite 库；`empty` 表示不导入样本，不会清空已有数据。需要合成样本时，先安装 Pillow 并运行 `python scripts/generate-fixtures.py`，再用 `-Fixture synthetic` 启动。旧阶段 A 程序与 `start-stage-a.ps1` 保留。
+样本生成器拒绝覆盖已有 `fixtures/100x500`。ExecutionPolicy Bypass 仅用于该 PowerShell 进程。当前构建输出在 `poc/src-tauri/target-stage-f/release/`，安装包在其中 `bundle/nsis/`。上述启动脚本使用独立库 `evidence/stage-f/manual-empty`，首次为空库，重启继续读取同一 SQLite 库；`empty` 表示不导入样本，不会清空已有数据。需要合成样本时，先安装 Pillow 并运行 `python scripts/generate-fixtures.py`，再用 `-Fixture synthetic` 启动。历史阶段脚本保留，但不是当前候选版入口。重新构建产物须重新核对哈希，不能套用已验收文件的哈希。
 
 首次启动默认隐藏：在专用目标输入框内按 Ctrl+Alt+1 呼出面板，点击提示词或图片。更换目标时先点新目标输入框，再按热键重新绑定。托盘可打开主库或退出；启动脚本拒绝同时运行同项目多版本。私人混合样本不随仓库提供，请使用 empty 自建测试案例或 synthetic 合成样本。
 
-### E 开发分支构建
-
-D 主线构建见上方命令；E 备份与恢复仅在独立测试库验收。安装依赖后，在项目根目录运行：
-
-```powershell
-git switch codex/4.4-e-backup
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-stage-e.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-stage-e.ps1 -Fixture empty
-```
-
-E 产物位于 `poc/src-tauri/target-stage-e/release/`，默认独立库 `evidence/stage-e/manual-empty`；不会清空或复用 D 测试库。GUI 必须通过 Tauri CLI 构建，普通 `cargo build --release` 不等同于正式 GUI 产物。
+GUI 必须通过 Tauri CLI 构建，普通 `cargo build --release` 不等同于正式 GUI 产物。历史 E 构建说明见对应交付记录；当前直接使用 main 和上方 F 构建入口。
 
 B2 数据库使用 schema 2；B1 程序会拒绝读取，代码回退不等于数据降级。先使用独立库验证，不对个人资料做未经验证的降级。C 冻结程序和资料目录保留。
 
@@ -81,17 +69,17 @@ B2 数据库使用 schema 2；B1 程序会拒绝读取，代码回退不等于�
 
 E 保留已有平面库，恢复后的新库位于 `storage/<id>/`，由 `active.json` 选择当前库，`active.previous.json` 保留上一库入口。请保留整个数据根目录，不单独挪动数据库或编辑指针。E 的 GUI 与离线工具使用同一入口。旧 D 程序不识别该指针布局，即使 schema 同为 2，也不能直接用旧程序打开已恢复过的 E 根目录。
 
-E 分支无需启动 GUI 即可验证独立测试库：
+当前候选版无需启动 GUI 即可验证独立测试库：
 
 ```powershell
-.\poc\src-tauri\target-stage-e\release\prompt-shelf-store.exe --data-dir .\evidence\stage-e\offline-library --import-manifest .\fixtures\100x500\manifest.json --check
-.\poc\src-tauri\target-stage-e\release\prompt-shelf-store.exe --data-dir .\evidence\stage-e\offline-library --check
+.\poc\src-tauri\target-stage-f\release\prompt-shelf-store.exe --data-dir .\evidence\stage-f\offline-library --import-manifest .\fixtures\100x500\manifest.json --check
+.\poc\src-tauri\target-stage-f\release\prompt-shelf-store.exe --data-dir .\evidence\stage-f\offline-library --check
 ```
 
 导入仅允许空库。重复导入非空库会拒绝，不会合并或覆盖；离线工具与 GUI 不能同时占用同一数据目录。源图片只读复制，原图按 SHA-256 共享，缩略图独立生成并按文件授权。旧 `scripts/start-poc.ps1` 仅供本地保留的 round7 历史程序使用。
 ## 验证命令
 
-供需要复现的审查者使用；B2 使用定向草稿与关闭测试，不重复完整 PoC。
+供需要复现的审查者使用；本次文档收尾没有重复执行这些测试。
 
 ```powershell
 cd poc

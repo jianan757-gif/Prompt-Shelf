@@ -1,13 +1,13 @@
 # 最终发布准备报告
 
-F（8358d6d）已通过用户验收及独立审核，保留完整历史合并 main 于 2915ed8；baseline-stage-f 指向 8358d6d，均已推送。补测与说明位于 codex/release-preparation。本轮不开发新功能，不改变 V5.0 UI、schema 2 或 A–F 行为，不创建 GitHub Release。
+F（8358d6d）已通过用户验收及独立审核，保留完整历史合并 main 于 2915ed8；baseline-stage-f 指向 8358d6d，均已推送。最终准备提交2d614ad已通过用户和ChatGPT独立审核，并于2026-10-30以060cb91保留完整历史合并main；baseline-release-preparation指向2d614ad。当前收尾说明见final-handoff.md。本报告保留补测方法、结果与验证边界，不改变V5.0 UI、schema 2或A–F行为，不创建GitHub Release。
 
 ## 当前结论
 
 - 已验收的 GUI 与 NSIS 安装包逐字节核对通过，不重新构建它们；版本仍为候选版 0.2.0-beta.1。
 - 卸载“主动勾选删除应用数据”补测通过：用户明确确认“已勾选并完成卸载”；卸载后 SQL 全表内容、草稿、回收站及 500 张原图 SHA-256 与卸载前完全一致，schema 2、完整性和外键检查通过。前后指纹文件 SHA-256 同为 `3D8F46B2DCC5C8E6ADDCAF72D0CE15727C7188F8BB8DCED1233D7939C2AEE770`，证据见 docs/validation/release-preparation/uninstall-retention.json。用户动作确认与自动数据核验分别记录。
 - 四种运行状态资源、正常退出、唤醒/搜索响应证据已齐。用户授权本次使用 Computer Use 切换独立测试库窗口，托盘正常退出由用户操作；数据由既有采样器和原生应用埋点记录。
-- 只修正采样器一处 CPU 取整错误，并整理辅助脚本/离线 CLI；产品源码、UI、依赖及 schema 2 未改动。最终准备报告供审核，不自动发布。
+- 只修正采样器一处 CPU 取整错误，并整理辅助脚本/离线 CLI；产品源码、UI、依赖及 schema 2 未改动。最终准备报告已通过审核，不自动发布。
 
 ## 实测性能基线
 
@@ -73,4 +73,4 @@ GUI 与安装包路径为 `poc/src-tauri/target-stage-f/release/` 及其中 `bun
 
 公开证据：docs/validation/release-preparation/；完整本机指纹和原始日志：evidence/release-preparation/、evidence/resources/。辅助脚本已完成 PowerShell/Python 语法检查；响应汇总器用合成日志验证会话过滤、分位数、缺失样本和被取代输入统计；现有采样器用自建临时 worker 验证退出后计数/私有内存归零。这些均不替代本轮应用的实际补测。
 
-卸载复选框、四状态资源、正常退出及响应证据均已收尾；资料复查100案例/500原图、完整性/外键/原图哈希通过，已跟踪测试进程无残留。等待最终审核及候选发布批准。当前不发布稳定版、不创建 Release。
+卸载复选框、四状态资源、正常退出及响应证据均已收尾；资料复查100案例/500原图、完整性/外键/原图哈希通过，已跟踪测试进程无残留。最终审核已通过，等待后续发布指令。当前不发布稳定版、不创建 Release。

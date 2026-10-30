@@ -10,10 +10,22 @@
   "performance": "RECORDED: corrected fractional CPU in four live states; first confirmed normal exit has 23 consecutive zero-process samples; warm wake10/search30/library single observation",
   "thresholds": "NONE",
   "release": "NOT_CREATED",
-  "review": "PENDING",
+  "review": "APPROVED_BY_USER_AND_CHATGPT_INDEPENDENT_REVIEW",
   "samplingToolFix": "Math.Max integer overload corrected to double; original CPU figures invalidated; product unchanged",
   "responseEvidencePid": 36356,
   "correctedResourcePid": 34864,
   "finalTestProcessCleanup": "PASS_USER_CONFIRMED_NORMAL_EXIT; SEVEN_TRACKED_PID_START_TIME_IDENTITIES_EXITED; POINT_IN_TIME_CHECK_NOT_LATENCY",
-  "state": "supplemental-evidence-recorded-pending-final-review"
+  "state": "closed-in-main-internal-test-candidate-only",
+  "closure": {
+    "date": "2026-10-30",
+    "reviewedCommit": "2d614ad051ab740f24517e04694313b9cb11e568",
+    "mergeCommit": "060cb917e9cfd6acfcf7c0ff8d8e1eb0c57fbd85",
+    "rollbackTag": "baseline-release-preparation",
+    "version": "0.2.0-beta.1",
+    "testsRerun": false,
+    "productCodeChanged": false,
+    "artifactsRebuilt": false,
+    "artifactsUploaded": false,
+    "releaseCreated": false
+  }
 }
